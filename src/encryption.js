@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 
 const CURVE = "secp384r1";
+const SUBPROTOCOL = "com.microsoft.minecraft.wsencrypt";
+const CIPHER_MODE = "cfb8";
 
 function createHandshake() {
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", {
@@ -19,7 +21,8 @@ function createHandshake() {
         publicKeyDer.toString("base64") +
         '" "' +
         salt.toString("base64") +
-        '"'
+        '" ' +
+        CIPHER_MODE
       );
     },
 
@@ -69,4 +72,11 @@ function extractClientKey(body) {
   return null;
 }
 
-module.exports = { createHandshake, createCipherPair, extractClientKey, CURVE };
+module.exports = {
+  createHandshake,
+  createCipherPair,
+  extractClientKey,
+  CURVE,
+  SUBPROTOCOL,
+  CIPHER_MODE,
+};

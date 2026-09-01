@@ -4,7 +4,11 @@ const { WebSocketServer } = require("ws");
 const { PROVIDERS } = require("./providers");
 const { createContext, PASSIVE_EVENTS } = require("./context");
 const { extract, promptSection } = require("./actions");
-const { createHandshake, extractClientKey } = require("./encryption");
+const {
+  createHandshake,
+  extractClientKey,
+  SUBPROTOCOL,
+} = require("./encryption");
 const {
   subscribe,
   command,
@@ -344,7 +348,16 @@ async function handleChat(ws, cfg, body, ctx) {
 function start() {
   const cfg = loadConfig();
   const provider = PROVIDERS[cfg.provider];
-  const wss = new WebSocketServer({ port: cfg.port, host: "0.0.0.0" });
+  const wss = new WebSocketServer({
+    port: cfg.port,
+    host: "0.0.0.0",
+    handleProtocols: (protocols) => {
+      const offered = Array.from(protocols || []);
+      if (offered.length) log("Client offered subprotocols: " + offered.join(", "));
+      if (offered.includes(SUBPROTOCOL)) return SUBPROTOCOL;
+      return false;
+    },
+  });
 
   log("Provider: " + provider.label + "  Model: " + cfg.model);
   log("Output mode: " + cfg.output);

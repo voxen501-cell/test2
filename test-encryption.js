@@ -27,9 +27,10 @@ console.log("=== crypto ===");
 {
   const hs = createHandshake();
   const cmd = hs.command();
-  const m = cmd.match(/^enableencryption "([^"]+)" "([^"]+)"$/);
+  const m = cmd.match(/^enableencryption "([^"]+)" "([^"]+)"(?: (\w+))?$/);
   check("the handshake command has the expected shape", !!m, cmd.slice(0, 60));
 
+  check("the cipher mode is sent so the client does not guess", m[3] === "cfb8", String(m[3]));
   const salt = Buffer.from(m[2], "base64");
   check("the salt is sixteen bytes", salt.length === 16, String(salt.length));
 
@@ -131,7 +132,7 @@ async function encryptedClient(port) {
       }
       if (msg.header.messagePurpose === "commandRequest") {
         const line = msg.body.commandLine;
-        const m = line.match(/^enableencryption "([^"]+)" "([^"]+)"$/);
+        const m = line.match(/^enableencryption "([^"]+)" "([^"]+)"(?: (\w+))?$/);
         if (m && !cipher) {
           const salt = Buffer.from(m[2], "base64");
           const serverPub = crypto.createPublicKey({
@@ -255,6 +256,49 @@ async function plainClient(port) {
     "the context queries actually went out",
     withCtx.seen.some((s) => typeof s === "string" && s.startsWith("querytarget")),
     JSON.stringify(withCtx.seen)
+  );
+
+  console.log("");
+  console.log("=== websocket subprotocol ===");
+  const { SUBPROTOCOL } = require("./src/encryption");
+  const sub = await new Promise((resolve) => {
+    const ws = new WebSocket("ws://127.0.0.1:8242", [SUBPROTOCOL]);
+    const t = setTimeout(() => resolve({ error: "timeout" }), 6000);
+    ws.on("open", () => {
+      clearTimeout(t);
+      const chosen = ws.protocol;
+      ws.close();
+      resolve({ chosen });
+    });
+    ws.on("error", (e) => {
+      clearTimeout(t);
+      resolve({ error: e.message });
+    });
+  });
+  check(
+    "the server accepts the minecraft encryption subprotocol",
+    sub.chosen === SUBPROTOCOL,
+    JSON.stringify(sub)
+  );
+
+  const plainSub = await new Promise((resolve) => {
+    const ws = new WebSocket("ws://127.0.0.1:8242");
+    const t = setTimeout(() => resolve({ error: "timeout" }), 6000);
+    ws.on("open", () => {
+      clearTimeout(t);
+      const chosen = ws.protocol;
+      ws.close();
+      resolve({ chosen });
+    });
+    ws.on("error", (e) => {
+      clearTimeout(t);
+      resolve({ error: e.message });
+    });
+  });
+  check(
+    "a client offering no subprotocol is still accepted",
+    plainSub.chosen === "" && !plainSub.error,
+    JSON.stringify(plainSub)
   );
 
   const failed = results.filter((r) => !r).length;
