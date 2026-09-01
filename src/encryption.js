@@ -2,7 +2,11 @@ const crypto = require("crypto");
 
 const CURVE = "secp384r1";
 const SUBPROTOCOL = "com.microsoft.minecraft.wsencrypt";
-const CIPHER_MODE = "cfb8";
+
+
+function unpadded(buffer) {
+  return buffer.toString("base64").replace(/=+$/, "");
+}
 
 function createHandshake() {
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", {
@@ -10,20 +14,15 @@ function createHandshake() {
   });
   const salt = crypto.randomBytes(16);
   const publicKeyDer = publicKey.export({ format: "der", type: "spki" });
+  const keyB64 = unpadded(publicKeyDer);
+  const saltB64 = unpadded(salt);
 
   return {
-    publicKeyBase64: publicKeyDer.toString("base64"),
-    saltBase64: salt.toString("base64"),
+    publicKeyBase64: keyB64,
+    saltBase64: saltB64,
 
     command() {
-      return (
-        'enableencryption "' +
-        publicKeyDer.toString("base64") +
-        '" "' +
-        salt.toString("base64") +
-        '" ' +
-        CIPHER_MODE
-      );
+      return 'enableencryption "' + keyB64 + '" "' + saltB64 + '"';
     },
 
     complete(clientPublicKeyBase64) {
@@ -78,5 +77,5 @@ module.exports = {
   extractClientKey,
   CURVE,
   SUBPROTOCOL,
-  CIPHER_MODE,
+  unpadded,
 };

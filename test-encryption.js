@@ -27,10 +27,15 @@ console.log("=== crypto ===");
 {
   const hs = createHandshake();
   const cmd = hs.command();
-  const m = cmd.match(/^enableencryption "([^"]+)" "([^"]+)"(?: (\w+))?$/);
+  const m = cmd.match(/^enableencryption "([^"]+)" "([^"]+)"$/);
   check("the handshake command has the expected shape", !!m, cmd.slice(0, 60));
 
-  check("the cipher mode is sent so the client does not guess", m[3] === "cfb8", String(m[3]));
+  check(
+    "the command is base64 without padding, as the client expects",
+    !m[1].includes("=") && !m[2].includes("="),
+    m[1].slice(-8) + " / " + m[2].slice(-8)
+  );
+  check("the command carries exactly two arguments", cmd.split('"').length - 1 === 4, cmd.slice(-20));
   const salt = Buffer.from(m[2], "base64");
   check("the salt is sixteen bytes", salt.length === 16, String(salt.length));
 
@@ -132,7 +137,7 @@ async function encryptedClient(port) {
       }
       if (msg.header.messagePurpose === "commandRequest") {
         const line = msg.body.commandLine;
-        const m = line.match(/^enableencryption "([^"]+)" "([^"]+)"(?: (\w+))?$/);
+        const m = line.match(/^enableencryption "([^"]+)" "([^"]+)"$/);
         if (m && !cipher) {
           const salt = Buffer.from(m[2], "base64");
           const serverPub = crypto.createPublicKey({
