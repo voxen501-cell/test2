@@ -1,4 +1,5 @@
 const fs = require("fs");
+const https = require("https");
 const path = require("path");
 const { WebSocketServer } = require("ws");
 const { PROVIDERS } = require("./providers");
@@ -37,6 +38,8 @@ const DEFAULT_CONFIG = {
   chunkDelayMs: 120,
   encryption: "auto",
   encryptionWaitMs: 2500,
+  tlsCertPath: "",
+  tlsKeyPath: "",
   postHandshakeMs: 500,
   subscribeGapMs: 80,
   useGameContext: true,
@@ -60,6 +63,8 @@ function envOverrides() {
   if (e.AI_MODEL) out.model = e.AI_MODEL;
   if (e.AI_TRIGGER !== undefined) out.trigger = e.AI_TRIGGER;
   if (e.AI_ENCRYPTION) out.encryption = e.AI_ENCRYPTION;
+  if (e.AI_TLS_CERT) out.tlsCertPath = e.AI_TLS_CERT;
+  if (e.AI_TLS_KEY) out.tlsKeyPath = e.AI_TLS_KEY;
   if (e.AI_SYSTEM_PROMPT) out.systemPrompt = e.AI_SYSTEM_PROMPT;
   if (e.AI_ALLOW_ACTIONS) out.allowActions = e.AI_ALLOW_ACTIONS !== "false";
   if (e.AI_MAX_PER_MINUTE) out.maxPerMinute = parseInt(e.AI_MAX_PER_MINUTE, 10);
@@ -350,9 +355,7 @@ async function handleChat(ws, cfg, body, ctx) {
 function start() {
   const cfg = loadConfig();
   const provider = PROVIDERS[cfg.provider];
-  const wss = new WebSocketServer({
-    port: cfg.port,
-    host: "0.0.0.0",
+  const wsOptions = {
     skipUTF8Validation: true,
     perMessageDeflate: false,
     handleProtocols: (protocols) => {
@@ -361,7 +364,27 @@ function start() {
       if (offered.includes(SUBPROTOCOL)) return SUBPROTOCOL;
       return false;
     },
-  });
+  };
+
+  let httpsServer = null;
+  if (cfg.tlsCertPath && cfg.tlsKeyPath) {
+    try {
+      httpsServer = https.createServer({
+        cert: fs.readFileSync(cfg.tlsCertPath),
+        key: fs.readFileSync(cfg.tlsKeyPath),
+      });
+      wsOptions.server = httpsServer;
+      log("TLS enabled, serving wss directly with no proxy in front");
+    } catch (err) {
+      fail("Could not read the TLS files: " + err.message);
+    }
+  } else {
+    wsOptions.port = cfg.port;
+    wsOptions.host = "0.0.0.0";
+  }
+
+  const wss = new WebSocketServer(wsOptions);
+  if (httpsServer) httpsServer.listen(cfg.port, "0.0.0.0");
 
   log("Provider: " + provider.label + "  Model: " + cfg.model);
   log("Output mode: " + cfg.output);
