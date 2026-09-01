@@ -351,6 +351,8 @@ function start() {
   const wss = new WebSocketServer({
     port: cfg.port,
     host: "0.0.0.0",
+    skipUTF8Validation: true,
+    perMessageDeflate: false,
     handleProtocols: (protocols) => {
       const offered = Array.from(protocols || []);
       if (offered.length) log("Client offered subprotocols: " + offered.join(", "));

@@ -123,10 +123,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function encryptedClient(port) {
   return new Promise((resolve) => {
-    const ws = new WebSocket("ws://127.0.0.1:" + port);
+    const ws = new WebSocket("ws://127.0.0.1:" + port, { skipUTF8Validation: true });
     let cipher = null;
     const seen = [];
-    ws.on("message", (data) => {
+    const frameTypes = [];
+    ws.on("message", (data, isBinary) => {
+      if (cipher) frameTypes.push(isBinary ? "binary" : "text");
       const text = cipher ? cipher.decrypt(data) : data.toString();
       let msg;
       try {
@@ -179,7 +181,7 @@ async function encryptedClient(port) {
       }
       await wait(700);
       ws.close();
-      resolve({ encrypted: !!cipher, seen });
+      resolve({ encrypted: !!cipher, seen, frameTypes });
     });
   });
 }
@@ -228,6 +230,12 @@ async function plainClient(port) {
     "a chat message sent encrypted gets an encrypted reply",
     enc.seen.some((s) => typeof s === "string" && s.includes("voxai:reply")),
     JSON.stringify(enc.seen)
+  );
+
+  check(
+    "encrypted frames are sent as text, the way Minecraft expects",
+    enc.frameTypes.length > 0 && enc.frameTypes.every((t) => t === "text"),
+    JSON.stringify(enc.frameTypes)
   );
 
   console.log("\n=== fallback when the client ignores encryption ===");

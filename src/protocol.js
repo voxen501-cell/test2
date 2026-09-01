@@ -82,8 +82,11 @@ function sanitize(text) {
 
 function sendPayload(ws, payload) {
   if (!ws || ws.readyState !== ws.OPEN) return false;
-  if (ws.voxaiCipher) ws.send(ws.voxaiCipher.encrypt(payload));
-  else ws.send(payload);
+  if (ws.voxaiCipher) {
+    ws.send(ws.voxaiCipher.encrypt(payload), { binary: false });
+  } else {
+    ws.send(payload);
+  }
   return true;
 }
 
