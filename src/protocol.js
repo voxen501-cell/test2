@@ -83,6 +83,13 @@ function sanitize(text) {
     .trim();
 }
 
+function sendPayload(ws, payload) {
+  if (!ws || ws.readyState !== ws.OPEN) return false;
+  if (ws.voxaiCipher) ws.send(ws.voxaiCipher.encrypt(payload));
+  else ws.send(payload);
+  return true;
+}
+
 function escapeRawtext(text) {
   return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -94,4 +101,5 @@ module.exports = {
   sanitize,
   escapeRawtext,
   newRequestId: randomUUID,
+  sendPayload,
 };

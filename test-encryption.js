@@ -93,7 +93,7 @@ console.log("=== crypto ===");
   check("extractClientKey ignores a body with no key", extractClientKey({ statusMessage: "ok" }) === null, "false positive");
 }
 
-function startServer(encryption, port) {
+function startServer(encryption, port, ctxOn) {
   fs.writeFileSync(
     CONFIG_PATH,
     JSON.stringify({
@@ -102,7 +102,7 @@ function startServer(encryption, port) {
       port,
       encryption,
       encryptionWaitMs: 800,
-      useGameContext: false,
+      useGameContext: ctxOn,
       allowActions: false,
       defaultAlwaysOn: true,
       cooldownMs: 0,
@@ -203,7 +203,7 @@ async function plainClient(port) {
 
 (async () => {
   console.log("\n=== handshake over a live socket ===");
-  startServer("auto", 8241);
+  startServer("auto", 8241, false);
   await wait(300);
 
   const enc = await encryptedClient(8241);
@@ -235,6 +235,26 @@ async function plainClient(port) {
     "the fallback session is readable plain text",
     !plain.seen.includes("UNPARSEABLE"),
     JSON.stringify(plain.seen)
+  );
+
+  console.log("\n=== context commands must also be encrypted ===");
+  startServer("auto", 8242, true);
+  await wait(300);
+  const withCtx = await encryptedClient(8242);
+  check(
+    "the handshake still completes with world context on",
+    withCtx.encrypted,
+    "no cipher"
+  );
+  check(
+    "every frame decrypts, including the context queries",
+    !withCtx.seen.includes("UNPARSEABLE"),
+    JSON.stringify(withCtx.seen)
+  );
+  check(
+    "the context queries actually went out",
+    withCtx.seen.some((s) => typeof s === "string" && s.startsWith("querytarget")),
+    JSON.stringify(withCtx.seen)
   );
 
   const failed = results.filter((r) => !r).length;

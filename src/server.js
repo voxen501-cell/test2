@@ -11,6 +11,7 @@ const {
   chunkText,
   sanitize,
   escapeRawtext,
+  sendPayload,
 } = require("./protocol");
 
 const CONFIG_PATH =
@@ -125,9 +126,7 @@ function rateLimited(session, cfg) {
 }
 
 function sendRaw(ws, payload) {
-  if (ws.readyState !== ws.OPEN) return;
-  if (ws.voxaiCipher) ws.send(ws.voxaiCipher.encrypt(payload));
-  else ws.send(payload);
+  sendPayload(ws, payload);
 }
 
 function send(ws, line) {

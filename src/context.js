@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { command, newRequestId } = require("./protocol");
+const { command, newRequestId, sendPayload } = require("./protocol");
 
 const DIMENSIONS = { 0: "the Overworld", 1: "the Nether", 2: "the End" };
 
@@ -122,7 +122,7 @@ function createContext(cfg, log) {
         resolve(null);
       }, timeoutMs || 1500);
       pending.set(id, { resolve, timer, line });
-      ws.send(command(line, id));
+      sendPayload(ws, command(line, id));
     });
   }
 
