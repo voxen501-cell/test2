@@ -112,7 +112,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 ws.on("open", async () => {
   console.log("\n=== world context ===");
-  await wait(200);
+  await wait(1400);
 
   check(
     "subscribes to world events, not just chat",

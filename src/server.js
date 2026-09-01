@@ -37,6 +37,8 @@ const DEFAULT_CONFIG = {
   chunkDelayMs: 120,
   encryption: "auto",
   encryptionWaitMs: 2500,
+  postHandshakeMs: 500,
+  subscribeGapMs: 80,
   useGameContext: true,
   allowActions: true,
   defaultAlwaysOn: true,
@@ -373,16 +375,35 @@ function start() {
 
   const ctx = createContext(cfg, log);
 
-  function beginSession(ws, how) {
+  async function beginSession(ws, how) {
     if (ws.voxaiStarted) return;
     ws.voxaiStarted = true;
     log("Session ready (" + how + ")");
+
+    if (ws.voxaiCipher && cfg.postHandshakeMs > 0) {
+      await sleep(cfg.postHandshakeMs);
+      if (ws.readyState !== ws.OPEN) {
+        log("Client left during the settling delay");
+        return;
+      }
+    }
+
     sendRaw(ws, subscribe("PlayerMessage"));
     if (cfg.useGameContext) {
-      for (const name of PASSIVE_EVENTS) sendRaw(ws, subscribe(name));
+      for (const name of PASSIVE_EVENTS) {
+        await sleep(cfg.subscribeGapMs);
+        if (ws.readyState !== ws.OPEN) {
+          log("Client left while subscribing");
+          return;
+        }
+        sendRaw(ws, subscribe(name));
+      }
       log("Watching the world: " + PASSIVE_EVENTS.join(", "));
     }
+    await sleep(cfg.subscribeGapMs);
+    if (ws.readyState !== ws.OPEN) return;
     tell(ws, "@a", "AI companion connected.");
+    log("Greeting sent, session fully open");
   }
 
   wss.on("connection", (ws, req) => {
