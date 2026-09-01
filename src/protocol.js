@@ -3,10 +3,9 @@ const { randomUUID } = require("crypto");
 function subscribe(eventName) {
   return JSON.stringify({
     header: {
-      version: 1,
       requestId: randomUUID(),
-      messageType: "commandRequest",
       messagePurpose: "subscribe",
+      version: 1,
     },
     body: { eventName },
   });
@@ -15,15 +14,13 @@ function subscribe(eventName) {
 function command(commandLine, requestId) {
   return JSON.stringify({
     header: {
-      version: 1,
       requestId: requestId || randomUUID(),
-      messageType: "commandRequest",
       messagePurpose: "commandRequest",
+      version: 1,
     },
     body: {
-      version: 1,
       commandLine,
-      origin: { type: "player" },
+      version: 1,
     },
   });
 }
