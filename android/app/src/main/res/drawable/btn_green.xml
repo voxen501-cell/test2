@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pressing takes the side away and drops the face onto it -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true" android:drawable="@drawable/slab_green_press" />
+    <item android:drawable="@drawable/slab_green" />
+</selector>

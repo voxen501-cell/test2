@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the opposite of a slab: dark at the top, lit along the bottom, so it
+     reads as cut into the surface rather than sitting on it -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/deep" />
+            <corners android:radius="4dp" />
+            <stroke android:width="1dp" android:color="#0A0B0D" />
+        </shape>
+    </item>
+    <item android:top="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#00000000"
+                android:endColor="#14FFFFFF"
+                android:type="linear" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</layer-list>

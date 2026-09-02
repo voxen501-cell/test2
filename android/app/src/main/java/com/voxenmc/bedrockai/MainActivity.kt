@@ -8,9 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -22,14 +19,13 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-// One screen: put a key in, press start, install the add-on, go and play. Once
-// the bridge is up the same page the desktop app shows is loaded into a
-// WebView, so there is one interface rather than two.
+// One screen, and it stays that screen: key, start, add-on, command. The
+// desktop app's page is not shown here - its main view is the world list, and
+// a phone cannot read com.mojang to fill one, so it would only ever be empty.
 class MainActivity : AppCompatActivity() {
 
     private lateinit var status: TextView
     private lateinit var start: Button
-    private lateinit var web: WebView
 
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
@@ -37,11 +33,6 @@ class MainActivity : AppCompatActivity() {
 
         status = findViewById(R.id.status)
         start = findViewById(R.id.start)
-        web = findViewById(R.id.web)
-        web.settings.javaScriptEnabled = true
-        web.settings.domStorageEnabled = true
-        web.webViewClient = WebViewClient()
-
         askForNotifications()
 
         findViewById<Button>(R.id.saveKey).setOnClickListener {
@@ -86,8 +77,8 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
         else startService(intent)
         status.text = "Starting the AI..."
-        // the http server needs a moment before the page will load
-        web.postDelayed({ refresh() }, 2500)
+        // node needs a moment to come up before the check will see it
+        status.postDelayed({ refresh() }, 2500)
     }
 
     // Minecraft imports a .mcpack through the normal open-with flow; the app
@@ -113,19 +104,14 @@ class MainActivity : AppCompatActivity() {
             val up = reachable()
             runOnUiThread {
                 if (up) {
-                    status.text = "AI is running"
+                    status.text = "AI is running - go and play"
                     start.text = "Running"
                     start.isEnabled = false
-                    if (web.url == null) web.loadUrl("http://localhost:${NodeEngine.PORT}/")
-                    web.visibility = View.VISIBLE
-                    findViewById<View>(R.id.setup).visibility = View.GONE
                 } else {
                     status.text =
                         if (NodeEngine.hasKey(this)) "Ready to start" else "Add your API key"
                     start.text = "Start AI"
                     start.isEnabled = true
-                    web.visibility = View.GONE
-                    findViewById<View>(R.id.setup).visibility = View.VISIBLE
                 }
             }
         }.start()

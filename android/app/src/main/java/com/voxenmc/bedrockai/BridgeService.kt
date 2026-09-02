@@ -52,8 +52,9 @@ class BridgeService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL)
             .setContentTitle("Bedrock AI is running")
-            .setContentText("/connect localhost:${NodeEngine.PORT}")
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentText("In Minecraft chat:  /connect localhost:${NodeEngine.PORT}")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF43C94B.toInt())
             .setContentIntent(open)
             .addAction(0, "Stop", stop)
             .setOngoing(true)

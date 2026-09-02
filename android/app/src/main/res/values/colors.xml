@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The desktop app's palette, so the two look like one product. -->
+<resources>
+    <color name="void_bg">#0B0C0E</color>
+    <color name="deep">#141519</color>
+    <color name="slab">#22242A</color>
+    <color name="slab2">#2A2D34</color>
+    <color name="slab3">#33373F</color>
+    <color name="edge">#0E0F12</color>
+    <color name="edge2">#16181C</color>
+
+    <color name="green">#43C94B</color>
+    <color name="green_lit">#6BE070</color>
+    <color name="green_side">#1D6B23</color>
+    <color name="green_ink">#0C1A0D</color>
+
+    <color name="ink">#EEF0F3</color>
+    <color name="ink2">#A4ABB6</color>
+    <color name="ink3">#6B7280</color>
+    <color name="ink4">#4A5058</color>
+</resources>

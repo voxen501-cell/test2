@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The pieces the layout repeats: step headings, and the two slab buttons. -->
+<resources>
+    <style name="StepHead">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">26dp</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="StepNote">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:textColor">@color/ink3</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="Slab">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="SlabGreen" parent="Slab">
+        <item name="android:background">@drawable/btn_green</item>
+        <item name="android:textColor">@color/green_ink</item>
+    </style>
+
+    <style name="SlabGrey" parent="Slab">
+        <item name="android:background">@drawable/btn_grey</item>
+        <item name="android:textColor">@color/ink</item>
+    </style>
+</resources>
