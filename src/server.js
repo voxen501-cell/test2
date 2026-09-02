@@ -681,6 +681,7 @@ function start() {
 
   wss.on("connection", (ws, req) => {
     log("Minecraft connected from " + (req.socket.remoteAddress || "unknown"));
+    ws.voxaiOpenedAt = Date.now();
     startKeepAlive(ws, cfg);
 
     if (cfg.encryption === "off") {
@@ -761,6 +762,17 @@ function start() {
           (code ? " code=" + code : "") +
           (reason && reason.length ? " reason=" + reason.toString() : "")
       );
+      // A session that never opened means the client hung up during the
+      // handshake, which looks identical to a healthy run in the log unless
+      // it is called out. Say which half of it got that far.
+      if (!ws.voxaiStarted) {
+        const held = Date.now() - ws.voxaiOpenedAt;
+        log("  it left after " + held + "ms, before the session opened");
+        if (ws.voxaiHandshake) {
+          log("  it never answered the encryption request");
+          log("  in Minecraft check Settings, General, Profile, Require Encrypted Websockets");
+        }
+      }
     });
     ws.on("error", (e) => log("Socket error: " + e.message));
   });
