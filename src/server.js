@@ -205,6 +205,25 @@ function shutDown() {
   setTimeout(() => process.exit(0), 120);
 }
 
+// Restart drops whatever Minecraft session is open and forgets the
+// conversation, so a stuck link can be cleared without hunting for the exe.
+// The http listener stays up on purpose: it is what the app window is talking
+// over, and closing it would look like the app had died.
+function restartBridge(wss, cfg) {
+  let dropped = 0;
+  for (const client of wss.clients) {
+    dropped++;
+    try {
+      client.close(1012, "restarting");
+    } catch (err) {
+      try { client.terminate(); } catch (e) {}
+    }
+  }
+  sessions.clear();
+  log("Bridge restarted by the app" + (dropped ? ", dropped " + dropped + " connection(s)" : ""));
+  return dropped;
+}
+
 function log(...args) {
   const t = new Date().toTimeString().slice(0, 8);
   if (ui) ui.note("[" + t + "] " + args.join(" "));
@@ -611,7 +630,7 @@ function start() {
   const platform = hostingPlatform();
   // On a managed host there is no window and nobody to close it, so the
   // shutdown watch is only wired up for a local run.
-  ui = createUi(cfg, platform ? null : shutDown);
+  ui = createUi(cfg, platform ? null : shutDown, () => restartBridge(wss, cfg));
   if (platform && cfg.tlsCertPath) {
     log("Running on " + platform + ", which already handles TLS.");
     log("Ignoring AI_TLS_CERT and AI_TLS_KEY - remove them from the dashboard.");

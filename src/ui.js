@@ -19,7 +19,7 @@ const UI_ASSETS = require("./uiassets");
 // fails to open does not shut the bridge down on its own.
 const IDLE_GRACE_MS = 6000;
 
-function createUi(cfg, onIdle) {
+function createUi(cfg, onIdle, onRestart) {
   const state = {
     port: cfg.port,
     provider: "",
@@ -119,6 +119,23 @@ function createUi(cfg, onIdle) {
         if (!id) throw new Error("no world given");
         installer.launchWorld(id);
         body = { ok: true, message: "Opening the world in Minecraft…" };
+      } catch (err) {
+        body = { ok: false, message: err.message };
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(body));
+    }
+
+    if (path === "/restart") {
+      let body;
+      try {
+        const dropped = onRestart ? onRestart() : 0;
+        body = {
+          ok: true,
+          message: dropped
+            ? "Bridge restarted, Minecraft disconnected. Run /connect again."
+            : "Bridge restarted. Run /connect in Minecraft.",
+        };
       } catch (err) {
         body = { ok: false, message: err.message };
       }

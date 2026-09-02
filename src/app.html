@@ -72,11 +72,28 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .bar__engine{font-size:11px;color:var(--ink-3);line-height:1.2}
 .bar__spacer{flex:1}
 
+/* the status is also the restart control: it reads as a plate at rest and
+   swaps to the action under the pointer, so the button costs no extra space */
 .status{
-  display:flex;align-items:center;gap:10px;padding:7px 14px 7px 12px;border-radius:var(--r);
-  background:var(--deep);
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:10px;
+  padding:7px 14px 7px 12px;border-radius:var(--r);min-width:186px;
+  background:var(--deep);color:var(--ink);text-align:left;
   box-shadow:inset 0 2px 4px rgba(0,0,0,.6), inset 0 -1px 0 var(--lit);
+  transition:box-shadow .1s, background .1s;
 }
+.status:hover{background:#191b20}
+.status:active .status__do{transform:translateY(1px)}
+.status__now{display:flex;align-items:center;gap:10px;transition:opacity .12s}
+.status:hover .status__now{opacity:0}
+.status__do{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:12.5px;font-weight:700;color:var(--ink);
+  opacity:0;transition:opacity .12s, transform .07s;pointer-events:none;
+}
+.status:hover .status__do{opacity:1}
+.status__do svg{width:15px;height:15px}
+.status.dead .status__do{color:var(--amber)}
 .lamp{
   width:11px;height:11px;border-radius:50%;flex:none;background:var(--ink-3);
   box-shadow:inset 0 -1px 2px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.25);
@@ -84,8 +101,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .lamp.ok{background:var(--green);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 10px rgba(67,201,75,.8)}
 .lamp.wait{background:var(--amber);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 9px rgba(232,168,56,.65)}
 .lamp.bad{background:var(--red);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 9px rgba(224,90,79,.7)}
-.status__text{font-size:12.5px;font-weight:600;line-height:1.2}
-.status__sub{font-size:10.5px;color:var(--ink-3);line-height:1.2}
+.status__text{display:block;font-size:12.5px;font-weight:600;line-height:1.2}
+.status__sub{display:block;font-size:10.5px;color:var(--ink-3);line-height:1.2}
 
 /* ══ shell ═════════════════════════════════════════════ */
 .shell{flex:1;min-height:0;display:flex}
@@ -392,13 +409,19 @@ code.inline{
     <div class="bar__engine" id="engine">starting…</div>
   </div>
   <span class="bar__spacer"></span>
-  <div class="status">
-    <span class="lamp" id="lamp"></span>
-    <div>
-      <div class="status__text" id="status">Starting</div>
-      <div class="status__sub" id="statusSub">setting up</div>
-    </div>
-  </div>
+  <button class="status" id="statusBtn" title="Restart the bridge">
+    <span class="status__now">
+      <span class="lamp" id="lamp"></span>
+      <span>
+        <span class="status__text" id="status">Starting</span>
+        <span class="status__sub" id="statusSub">setting up</span>
+      </span>
+    </span>
+    <span class="status__do" id="statusDo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+      <span id="statusDoText">Restart</span>
+    </span>
+  </button>
 </div>
 
 <div class="shell">
@@ -819,6 +842,12 @@ document.getElementById("copy").onclick = function () {
 };
 
 function render(s) {
+  if (bridgeDead) {
+    bridgeDead = false;
+    statusBtn.className = "status";
+    statusBtn.title = "Restart the bridge";
+    document.getElementById("statusDoText").textContent = "Restart";
+  }
   document.getElementById("cmd").textContent = "/connect localhost:" + s.port;
   document.getElementById("engine").textContent = s.provider ? s.provider + " · " + s.model : "starting…";
 
@@ -855,12 +884,42 @@ function render(s) {
   if (atBottom) logBox.scrollTop = logBox.scrollHeight;
 }
 
+/* the status plate doubles as restart. When the bridge is gone there is
+   nothing left to ask, so it offers a reload instead - which reconnects if the
+   bridge is actually still there. */
+var statusBtn = document.getElementById("statusBtn");
+var bridgeDead = false;
+
+statusBtn.onclick = function () {
+  if (bridgeDead) {
+    location.reload();
+    return;
+  }
+  var icon = statusBtn.querySelector(".status__do svg");
+  icon.classList.add("spinning");
+  statusBtn.disabled = true;
+  fetch("/restart")
+    .then(function (r) { return r.json(); })
+    .then(function (d) { say(d.message, d.ok); })
+    .catch(function () { say("The bridge did not answer.", false); })
+    .then(function () {
+      setTimeout(function () {
+        icon.classList.remove("spinning");
+        statusBtn.disabled = false;
+      }, 450);
+    });
+};
+
 var es = new EventSource("/events");
 es.onmessage = function (e) { render(JSON.parse(e.data)); };
 es.onerror = function () {
+  bridgeDead = true;
+  statusBtn.className = "status dead";
+  statusBtn.title = "Try connecting to the bridge again";
   document.getElementById("lamp").className = "lamp bad";
   document.getElementById("status").textContent = "Stopped";
-  document.getElementById("statusSub").textContent = "restart the app";
+  document.getElementById("statusSub").textContent = "bridge not responding";
+  document.getElementById("statusDoText").textContent = "Start again";
 };
 
 skeletons(12);
