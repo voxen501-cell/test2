@@ -10,17 +10,17 @@
    A raised slab shows a solid side underneath it, and pressing takes that side
    away and drops the slab into place. A well inverts it, dark at the top.
 
-   The depth comes from that side, not from shine. Faces are flat colour and the
-   lit edge is barely there - a gradient and a bright highlight on every surface
-   is what makes an interface look like polished stone rather than material. */
+   The depth comes from that side, not from shine. Faces are flat colour, the
+   lit edge is barely there, and the sides are kept shallow - a gradient plus a
+   bright highlight on every face is what made this read as polished stone. */
 :root{
-  --void:#0d0d0e;      /* behind everything */
-  --deep:#161615;      /* recessed floor */
-  --slab:#232322;      /* the standard raised surface */
-  --slab-2:#2b2b29;    /* a slab sitting on a slab */
-  --slab-3:#343432;    /* hover */
-  --edge:#101010;      /* the side of a slab, its thickness */
-  --edge-2:#191918;
+  --void:#0b0c0e;      /* behind everything */
+  --deep:#141519;      /* recessed floor */
+  --slab:#22242a;      /* the standard raised surface */
+  --slab-2:#2a2d34;    /* a slab sitting on a slab */
+  --slab-3:#33373f;    /* hover */
+  --edge:#0e0f12;      /* the side of a slab, its thickness */
+  --edge-2:#16181c;
 
   --lit:rgba(255,255,255,.045);
   --lit-2:rgba(255,255,255,.07);
@@ -33,9 +33,9 @@
   --amber:#e8a838;
   --red:#e05a4f;
 
-  --ink:#ececea;
-  --ink-2:#a8a8a3;
-  --ink-3:#75756f;
+  --ink:#eef0f3;
+  --ink-2:#a4abb6;
+  --ink-3:#6b7280;
 
   /* cubic, with just enough radius to stop the corners biting */
   --r:4px;
@@ -67,7 +67,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   background:var(--slab-2);
   box-shadow:
     inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
-    0 4px 0 var(--edge), 0 6px 10px rgba(0,0,0,.34);
+    0 3px 0 var(--edge), 0 5px 9px rgba(0,0,0,.34);
   z-index:20;
 }
 .bar__logo{width:36px;height:36px;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
@@ -85,7 +85,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   box-shadow:inset 0 2px 3px rgba(0,0,0,.42), inset 0 -1px 0 var(--lit);
   transition:box-shadow .1s, background .1s;
 }
-.status:hover{background:#333331}
+.status:hover{background:#191b20}
 .status:active .status__do{transform:translateY(1px)}
 .status__now{display:flex;align-items:center;gap:10px;transition:opacity .12s}
 .status:hover .status__now{opacity:0}
@@ -121,7 +121,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   background:var(--slab-2);
   box-shadow:
     inset 0 1px 0 var(--lit), inset 0 -1px 0 var(--dark),
-    0 3px 0 var(--edge), 0 4px 6px rgba(0,0,0,.26);
+    0 2px 0 var(--edge), 0 3px 5px rgba(0,0,0,.26);
   transition:background .1s, color .1s, transform .07s, box-shadow .07s;
 }
 .tab:hover{background:var(--slab-3);color:var(--ink)}
@@ -130,12 +130,12 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   color:#0c1a0d;background:var(--green);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.14),
-    0 3px 0 var(--green-side), 0 4px 7px rgba(0,0,0,.28);
+    0 2px 0 var(--green-side), 0 3px 6px rgba(0,0,0,.28);
 }
 .tab.on svg{opacity:1}
 .tab svg{width:17px;height:17px;flex:none;opacity:.8}
 .tab .badge{margin-left:auto;font-size:11px;font-weight:700;opacity:.7;font-variant-numeric:tabular-nums}
-.rail__foot{margin-top:auto;font-size:10px;color:#54544f;text-align:center;line-height:1.5}
+.rail__foot{margin-top:auto;font-size:10px;color:#4a5058;text-align:center;line-height:1.5}
 
 /* ══ main ══════════════════════════════════════════════ */
 .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--void)}
@@ -171,7 +171,7 @@ select.well option{background:var(--slab);color:var(--ink)}
 /* ══ the button: a slab with a visible side ════════════ */
 .btn{
   --side:var(--edge);
-  --lip:4px;
+  --lip:3px;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   padding:10px 16px;border-radius:var(--r);
   font-size:13px;font-weight:700;color:var(--ink);
@@ -206,14 +206,14 @@ select.well option{background:var(--slab);color:var(--ink)}
   padding:8px;
   box-shadow:
     inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
-    0 5px 0 var(--edge), 0 7px 11px rgba(0,0,0,.3);
+    0 3px 0 var(--edge), 0 5px 9px rgba(0,0,0,.3);
   transform:translateY(0);
   transition:background .12s, transform .07s, box-shadow .07s;
 }
 .tile:hover{background:var(--slab-3)}
 /* the whole card is the control, so the whole card is what presses */
 .tile:active{
-  transform:translateY(5px);
+  transform:translateY(4px);
   box-shadow:inset 0 2px 4px rgba(0,0,0,.4);
 }
 
@@ -227,7 +227,7 @@ select.well option{background:var(--slab);color:var(--ink)}
   opacity:0;transition:opacity .3s;
 }
 .tile__shot img.ready{opacity:1}
-.tile__shot .ph{width:32px;height:32px;color:#3f3f3c}
+.tile__shot .ph{width:32px;height:32px;color:#3a3f47}
 
 .chips{position:absolute;left:6px;bottom:6px;display:flex;gap:4px;z-index:2}
 .chip{
@@ -244,7 +244,7 @@ select.well option{background:var(--slab);color:var(--ink)}
 
 .plate{
   --side:var(--edge-2);
-  --lip:3px;
+  --lip:2px;
   border-radius:var(--r-sm);
   background:var(--slab-3);
   box-shadow:
@@ -252,7 +252,7 @@ select.well option{background:var(--slab);color:var(--ink)}
   transform:translateY(0);
   transition:transform .07s, box-shadow .07s, background .1s, color .1s;
 }
-.plate:hover{background:#3d3d3a}
+.plate:hover{background:#3c414a}
 .plate:active{--lip:0px;transform:translateY(3px);box-shadow:inset 0 2px 3px rgba(0,0,0,.38)}
 
 /* the name is a label cut into the card, not a button - the card carries the
@@ -297,7 +297,7 @@ select.well option{background:var(--slab);color:var(--ink)}
   background:var(--slab-2);
   box-shadow:
     inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
-    0 5px 0 var(--edge), 0 7px 11px rgba(0,0,0,.28);
+    0 3px 0 var(--edge), 0 5px 9px rgba(0,0,0,.28);
 }
 .panel h2{font-size:14.5px;font-weight:700;margin:0 0 5px;letter-spacing:-.01em}
 .panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 16px}
@@ -348,7 +348,7 @@ code.inline{
 .dlg{
   width:min(400px,100%);border-radius:var(--r);overflow:hidden;
   background:var(--slab-2);
-  box-shadow:inset 0 1px 0 var(--lit-2), 0 8px 0 var(--edge), 0 14px 28px rgba(0,0,0,.45);
+  box-shadow:inset 0 1px 0 var(--lit-2), 0 5px 0 var(--edge), 0 12px 24px rgba(0,0,0,.45);
   animation:drop .18s cubic-bezier(.2,.9,.3,1);
 }
 .dlg__shot{
@@ -365,7 +365,7 @@ code.inline{
   position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);
   padding:11px 20px;border-radius:var(--r);font-size:12.5px;font-weight:600;
   background:var(--slab-3);
-  box-shadow:inset 0 1px 0 var(--lit-2), 0 4px 0 var(--edge), 0 8px 14px rgba(0,0,0,.36);
+  box-shadow:inset 0 1px 0 var(--lit-2), 0 3px 0 var(--edge), 0 6px 12px rgba(0,0,0,.36);
   opacity:0;pointer-events:none;z-index:70;max-width:70vw;
   transition:opacity .18s, transform .18s;
 }
@@ -388,7 +388,7 @@ code.inline{
 .skel{
   border-radius:var(--r);padding:8px;
   background:var(--slab-2);
-  box-shadow:inset 0 1px 0 var(--lit), 0 6px 0 var(--edge), 0 7px 11px rgba(0,0,0,.3);
+  box-shadow:inset 0 1px 0 var(--lit), 0 4px 0 var(--edge), 0 6px 10px rgba(0,0,0,.3);
 }
 .skel__shot{aspect-ratio:16/9;border-radius:var(--r-sm)}
 .skel__row{--h:46px;display:flex;gap:6px;margin-top:8px;height:var(--h)}
