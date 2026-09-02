@@ -1,5 +1,6 @@
 const { spawn } = require("child_process");
 const installer = require("./install");
+const os = require("os");
 const fs = require("fs");
 const path = require("path");
 
@@ -19,6 +20,23 @@ const UI_ASSETS = require("./uiassets");
 // fails to open does not shut the bridge down on its own.
 const IDLE_GRACE_MS = 6000;
 
+// The bridge listens on every interface, so a phone on the same Wi-Fi can
+// reach it. These are the addresses to hand that phone.
+function lanAddresses() {
+  const out = [];
+  const nets = os.networkInterfaces();
+  for (const [name, list] of Object.entries(nets)) {
+    for (const net of list || []) {
+      if (net.family !== "IPv4" || net.internal) continue;
+      if (/^169\.254\./.test(net.address)) continue; // link-local, unreachable
+      out.push({ name, address: net.address });
+    }
+  }
+  // a Wi-Fi adapter is the one a phone will be on
+  out.sort((a, b) => (/wi.?fi|wlan/i.test(b.name) ? 1 : 0) - (/wi.?fi|wlan/i.test(a.name) ? 1 : 0));
+  return out;
+}
+
 function createUi(cfg, onIdle, onRestart) {
   const state = {
     port: cfg.port,
@@ -33,6 +51,7 @@ function createUi(cfg, onIdle, onRestart) {
     packVersion: "",
     worldCount: 0,
     installMessage: "",
+    lanAddresses: lanAddresses(),
   };
 
   // The world list runs to hundreds of entries. It is fetched on demand rather
