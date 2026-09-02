@@ -71,25 +71,58 @@
 
             <TextView
                 style="@style/StepHead"
-                android:text="1 · Your API key" />
+                android:text="1 · Which AI" />
 
             <TextView
                 style="@style/StepNote"
-                android:text="A free Groq key works. It is kept on this phone only." />
+                android:text="Pick the service, then paste a key from that same service. A key only works with the one that issued it." />
 
-            <EditText
-                android:id="@+id/key"
+            <Spinner
+                android:id="@+id/provider"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/well"
-                android:hint="gsk_..."
-                android:importantForAutofill="no"
-                android:inputType="textPassword"
                 android:padding="14dp"
-                android:textColor="@color/ink"
-                android:textColorHint="@color/ink4"
-                android:textSize="14sp" />
+                android:popupBackground="@color/slab2" />
+
+            <TextView
+                android:id="@+id/keyHint"
+                style="@style/StepNote"
+                android:layout_marginTop="14dp"
+                android:text="Get a free key at console.groq.com/keys" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/key"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/well"
+                    android:hint="gsk_..."
+                    android:importantForAutofill="no"
+                    android:inputType="textPassword"
+                    android:padding="14dp"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/ink4"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/reveal"
+                    style="@style/SlabGrey"
+                    android:layout_width="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="0dp"
+                    android:minWidth="76dp"
+                    android:paddingHorizontal="12dp"
+                    android:text="Show"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/saveKey"
@@ -98,7 +131,7 @@
 
             <TextView
                 style="@style/StepHead"
-                android:text="2 · Start the AI" />
+                android:text="2 · The AI" />
 
             <Button
                 android:id="@+id/start"
@@ -139,6 +172,25 @@
                 android:id="@+id/copy"
                 style="@style/SlabGrey"
                 android:text="Copy command" />
+
+            <TextView
+                android:id="@+id/chatHead"
+                style="@style/StepHead"
+                android:text="Conversation"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/chat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/well"
+                android:lineSpacingExtra="3dp"
+                android:padding="14dp"
+                android:textColor="@color/ink2"
+                android:textIsSelectable="true"
+                android:textSize="13sp"
+                android:visibility="gone" />
 
             <TextView
                 android:layout_width="match_parent"

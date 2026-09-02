@@ -36,6 +36,7 @@ const DEFAULT_CONFIG = {
   model: "",
   maxTokens: 600,
   reasoningEffort: "low",
+  fallbackModel: "",
   port: 8080,
   trigger: "ai",
   output: "addon",
@@ -72,6 +73,7 @@ function envOverrides() {
   if (e.AI_API_KEY) out.apiKey = e.AI_API_KEY;
   if (e.AI_PROVIDER) out.provider = e.AI_PROVIDER;
   if (e.AI_MODEL) out.model = e.AI_MODEL;
+  if (e.AI_FALLBACK_MODEL) out.fallbackModel = e.AI_FALLBACK_MODEL;
   if (e.AI_TRIGGER !== undefined) out.trigger = e.AI_TRIGGER;
   if (e.AI_ENCRYPTION) out.encryption = e.AI_ENCRYPTION;
   if (e.AI_KEEPALIVE_MS) out.keepAliveMs = parseInt(e.AI_KEEPALIVE_MS, 10);
@@ -107,6 +109,8 @@ function loadConfig() {
     );
   }
   if (!cfg.model) cfg.model = provider.defaultModel;
+  // a smaller model to fall back to when the main one is rate limited
+  if (!cfg.fallbackModel) cfg.fallbackModel = provider.defaultFallback || "";
   if (!cfg.apiKey && cfg.provider !== "ollama") {
     fail(
       "No apiKey in config.json. Get a free key: " + provider.keyUrl
@@ -309,11 +313,21 @@ function status(ws, cfg, player, state) {
   send(ws, "scriptevent voxai:status " + player + "|" + state);
 }
 
+// Who it is, added after whatever prompt the config carries so an edited
+// systemPrompt cannot lose it. Players ask this constantly.
+const IDENTITY = [
+  "You are Bedrock AI, made by VoxenMC. If anyone asks who made you, who built",
+  "you, or where you came from, say Voxen made you. Do not name the company",
+  "behind the language model you happen to run on - that is plumbing, not who",
+  "you are. If asked what you are, you are the AI companion from the Bedrock AI",
+  "add-on by VoxenMC.",
+].join(" ");
+
 async function ask(cfg, session, question, contextBlock, remember) {
   const provider = PROVIDERS[cfg.provider];
   const messages = [...session.history, { role: "user", content: question }];
   const GAP = String.fromCharCode(10) + String.fromCharCode(10);
-  const pieces = [cfg.systemPrompt];
+  const pieces = [cfg.systemPrompt, IDENTITY];
   if (contextBlock) pieces.push(contextBlock);
   if (cfg.allowActions) {
     const section = promptSection(cfg.actionsAllowed);
@@ -488,6 +502,7 @@ async function handleChat(ws, cfg, body, ctx) {
   session.stamps.push(Date.now());
   status(ws, cfg, sender, "thinking");
   ui.set({ player: sender });
+  ui.said(sender, text);
   log(sender + " asked: " + text.slice(0, 120));
 
   try {
@@ -592,13 +607,17 @@ async function handleChat(ws, cfg, body, ctx) {
       session.history = session.history.slice(-keep);
     }
     log("replied " + answer.length + " chars");
+    ui.said("AI", answer);
     await deliver(ws, cfg, sender, answer);
   } catch (err) {
     const last = session.history[session.history.length - 1];
     if (last && last.role === "user") session.history.pop();
     log("API error: " + err.message);
     status(ws, cfg, sender, "error");
-    tell(ws, "@a", "AI error: " + err.message.slice(0, 150));
+    // a rate limit is a wait, not a fault; say so in words a player can act on
+    tell(ws, "@a", err.rateLimited
+      ? "Too many messages for the free plan right now. Give it a few seconds and ask again."
+      : "AI error: " + err.message.slice(0, 150));
   } finally {
     session.busy = false;
   }
@@ -689,7 +708,14 @@ function start() {
   listener.listen(cfg.port, "0.0.0.0");
 
   ui.set({ port: cfg.port, provider: provider.label, model: cfg.model });
-  log("Provider: " + provider.label + "  Model: " + cfg.model);
+  // the provider layer reports a wait or a fall back through this
+  cfg.onWait = (status, wait, attempt, model) => {
+    if (model) log("rate limited, answering with " + model + " this time");
+    else log("HTTP " + status + ", waiting " + wait + "ms then retrying (" + attempt + ")");
+  };
+
+  log("Provider: " + provider.label + "  Model: " + cfg.model +
+      (cfg.fallbackModel ? "  Fallback: " + cfg.fallbackModel : ""));
   log("Output mode: " + cfg.output);
   log("Listening on port " + cfg.port);
   log("In Minecraft run:  /connect localhost:" + cfg.port);

@@ -1,7 +1,59 @@
-async function openAiChat(url, cfg, system, messages, extraHeaders) {
+// A free tier hands back 429 the moment a burst of chat outruns its per-minute
+// budget, and the player sees the raw HTTP error mid-conversation. Rather than
+// pass that on: wait the time the API asks for and try again, then drop to a
+// smaller model for that one reply if the limit is still in force.
+const RETRIES = 2;
+const MAX_WAIT_MS = 8000;
+
+function isRateLimited(status) {
+  return status === 429;
+}
+
+function retryable(status) {
+  return isRateLimited(status) || status === 500 || status === 502 ||
+         status === 503 || status === 504;
+}
+
+// Groq and OpenRouter both send retry-after; honour it rather than guessing,
+// but never sit on a player's message for longer than a few seconds.
+function waitFor(res) {
+  const header = res.headers.get("retry-after");
+  if (header) {
+    const seconds = Number(header);
+    if (Number.isFinite(seconds)) return Math.min(seconds * 1000, MAX_WAIT_MS);
+    const when = Date.parse(header);
+    if (Number.isFinite(when)) {
+      return Math.min(Math.max(0, when - Date.now()), MAX_WAIT_MS);
+    }
+  }
+  return 1200;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function postRetrying(url, options, onWait) {
+  let res = await fetch(url, options);
+  for (let attempt = 0; attempt < RETRIES && !res.ok && retryable(res.status); attempt++) {
+    const wait = waitFor(res);
+    if (onWait) onWait(res.status, wait, attempt + 1);
+    await sleep(wait);
+    res = await fetch(url, options);
+  }
+  return res;
+}
+
+class RateLimited extends Error {
+  constructor(message) {
+    super(message);
+    this.rateLimited = true;
+  }
+}
+
+async function openAiChat(url, cfg, system, messages, extraHeaders, modelOverride) {
+  const model = modelOverride || cfg.model;
   const build = (withEffort) => {
     const body = {
-      model: cfg.model,
+      model,
       max_tokens: cfg.maxTokens,
       messages: [{ role: "system", content: system }, ...messages],
     };
@@ -12,11 +64,11 @@ async function openAiChat(url, cfg, system, messages, extraHeaders) {
   };
 
   const post = (payload) =>
-    fetch(url, {
+    postRetrying(url, {
       method: "POST",
       headers: { "content-type": "application/json", ...extraHeaders },
       body: payload,
-    });
+    }, cfg.onWait);
 
   let res = await post(build(true));
   let data = await readJson(res);
@@ -25,7 +77,10 @@ async function openAiChat(url, cfg, system, messages, extraHeaders) {
     res = await post(build(false));
     data = await readJson(res);
   }
-  if (!res.ok) throw new Error(errText(data, res.status));
+  if (!res.ok) {
+    if (isRateLimited(res.status)) throw new RateLimited(errText(data, res.status));
+    throw new Error(errText(data, res.status));
+  }
 
   const choice = data.choices?.[0] || {};
   const msg = choice.message || {};
@@ -40,13 +95,27 @@ async function openAiChat(url, cfg, system, messages, extraHeaders) {
   return "";
 }
 
+// One reply, with the smaller model as a second chance if the first is capped.
+async function openAiChatWithFallback(url, cfg, system, messages, headers) {
+  try {
+    return await openAiChat(url, cfg, system, messages, headers);
+  } catch (err) {
+    const spare = cfg.fallbackModel;
+    if (!err.rateLimited || !spare || spare === cfg.model) throw err;
+    if (cfg.onWait) cfg.onWait(429, 0, 0, spare);
+    return openAiChat(url, cfg, system, messages, headers, spare);
+  }
+}
+
 const PROVIDERS = {
   groq: {
     label: "Groq",
     defaultModel: "openai/gpt-oss-120b",
+    // a separate, smaller bucket to fall back to when the big one is capped
+    defaultFallback: "openai/gpt-oss-20b",
     keyUrl: "https://console.groq.com/keys",
     async chat(cfg, system, messages) {
-      return openAiChat(
+      return openAiChatWithFallback(
         "https://api.groq.com/openai/v1/chat/completions",
         cfg,
         system,
@@ -93,7 +162,7 @@ const PROVIDERS = {
     defaultModel: "meta-llama/llama-3.3-70b-instruct:free",
     keyUrl: "https://openrouter.ai/keys",
     async chat(cfg, system, messages) {
-      return openAiChat(
+      return openAiChatWithFallback(
         "https://openrouter.ai/api/v1/chat/completions",
         cfg,
         system,

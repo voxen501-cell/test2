@@ -25,11 +25,13 @@ class BridgeService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
-            // Node has no clean shutdown from here; the process goes with it
+            // Node has no clean shutdown, so the process goes with it. This is
+            // :bridge, not the app, so the screen behind stays where it was.
             android.os.Process.killProcess(android.os.Process.myPid())
             return START_NOT_STICKY
         }
-        return START_STICKY
+        // do not come back by itself after Stop
+        return START_NOT_STICKY
     }
 
     private fun buildNotification(): android.app.Notification {

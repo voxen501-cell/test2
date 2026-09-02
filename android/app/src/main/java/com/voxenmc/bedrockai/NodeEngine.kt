@@ -61,10 +61,11 @@ object NodeEngine {
     private fun writeConfig(context: Context, home: File) {
         val file = File(home, "config.json")
         val existing = if (file.exists()) JSONObject(file.readText()) else JSONObject()
-        val prefs = context.getSharedPreferences("bedrockai", Context.MODE_PRIVATE)
-
-        existing.put("provider", prefs.getString("provider", "groq"))
-        existing.put("apiKey", prefs.getString("apiKey", "") ?: "")
+        val id = provider(context)
+        existing.put("provider", id)
+        existing.put("apiKey", keyFor(context, id))
+        // let the bridge choose the model for whichever service this is
+        existing.remove("model")
         existing.put("port", PORT)
         // the phone has no com.mojang it can read, so the world list stays empty
         // and the app does its own add-on install through an intent instead
@@ -74,13 +75,26 @@ object NodeEngine {
         file.writeText(existing.toString(2))
     }
 
-    fun hasKey(context: Context): Boolean {
-        val prefs = context.getSharedPreferences("bedrockai", Context.MODE_PRIVATE)
-        return !prefs.getString("apiKey", "").isNullOrBlank()
-    }
-
-    fun saveKey(context: Context, key: String) {
+    // Every service issues its own key, so they are stored per service: moving
+    // between them does not wipe the one already entered.
+    private fun prefs(context: Context) =
         context.getSharedPreferences("bedrockai", Context.MODE_PRIVATE)
-            .edit().putString("apiKey", key.trim()).apply()
+
+    fun provider(context: Context): String =
+        prefs(context).getString("provider", "groq") ?: "groq"
+
+    fun setProvider(context: Context, id: String) =
+        prefs(context).edit().putString("provider", id).apply()
+
+    fun keyFor(context: Context, id: String): String =
+        prefs(context).getString("apiKey_" + id, "") ?: ""
+
+    fun saveKey(context: Context, id: String, key: String) =
+        prefs(context).edit().putString("apiKey_" + id, key.trim()).apply()
+
+    // Ollama runs on the device and needs no key at all.
+    fun isReady(context: Context): Boolean {
+        val id = provider(context)
+        return id == "ollama" || keyFor(context, id).isNotBlank()
     }
 }

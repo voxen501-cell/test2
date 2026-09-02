@@ -9,6 +9,7 @@ const FILES = [
   "test-lifecycle.js",
   "test-restart.js",
   "test-backup.js",
+  "test-ratelimit.js",
   "test-actions.js",
   "test-sequence.js",
   "test-encryption.js",

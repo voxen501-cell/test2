@@ -24,9 +24,16 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Its own process, on purpose. Node cannot be shut down without ending
+          the process it runs in, so keeping it here would mean Stop closed the
+          whole app. In :bridge it can be killed on its own and the screen the
+          player is looking at stays put.
+        -->
         <service
             android:name=".BridgeService"
             android:exported="false"
+            android:process=":bridge"
             android:foregroundServiceType="dataSync" />
 
         <provider

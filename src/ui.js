@@ -1,5 +1,6 @@
 const { spawn } = require("child_process");
 const installer = require("./install");
+const { PROVIDERS } = require("./providers");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
@@ -59,6 +60,11 @@ function createUi(cfg, onIdle, onRestart) {
   // than pushed, so a log line does not resend it to every open page.
   let worlds = [];
 
+  // What was actually said, as opposed to the log. Kept short: this is the
+  // recent conversation, not a transcript to keep forever.
+  const CHAT_KEPT = 60;
+  const chat = [];
+
   function refreshWorlds() {
     try {
       state.minecraftFound = installer.findRoots().length > 0;
@@ -98,6 +104,11 @@ function createUi(cfg, onIdle, onRestart) {
   function set(patch) {
     Object.assign(state, patch);
     push();
+  }
+
+  function said(who, text) {
+    chat.push({ who, text: String(text), at: Date.now() });
+    while (chat.length > CHAT_KEPT) chat.shift();
   }
 
   function note(line) {
@@ -161,6 +172,32 @@ function createUi(cfg, onIdle, onRestart) {
       }
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify(body));
+    }
+
+    // Which services can be used, and where each one's key comes from. A key
+    // only works with the service that issued it, so the app has to say which
+    // is which rather than asking for "an API key".
+    if (path === "/providers") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        current: cfg.provider,
+        providers: Object.entries(PROVIDERS).map(([id, p]) => ({
+          id,
+          label: p.label,
+          model: p.defaultModel,
+          keyUrl: p.keyUrl,
+          needsKey: id !== "ollama",
+        })),
+      }));
+    }
+
+    if (path === "/chat") {
+      const since = Number(new URL(req.url, "http://x").searchParams.get("since")) || 0;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({
+        chat: since ? chat.filter((m) => m.at > since) : chat,
+        now: Date.now(),
+      }));
     }
 
     if (path === "/roots") {
@@ -268,7 +305,7 @@ function createUi(cfg, onIdle, onRestart) {
 
   refreshWorlds();
 
-  return { handle, set, note, state, refreshWorlds, windowSeen: () => everConnected };
+  return { handle, set, note, said, state, refreshWorlds, windowSeen: () => everConnected };
 }
 
 // Opens the page as its own window, so it reads as an app and not a browser
