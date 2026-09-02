@@ -343,8 +343,20 @@ code.inline{
 .empty p{margin:0;font-size:13.5px}
 
 /* ══ dialog ════════════════════════════════════════════ */
-.scrim{position:fixed;inset:0;background:rgba(6,7,9,.72);display:none;place-items:center;z-index:60;padding:24px}
-.scrim.open{display:grid;animation:fade .13s ease}
+/* the dialog takes the whole window: everything behind it goes out of focus,
+   so the only thing left to read is the question being asked */
+.scrim{
+  position:fixed;inset:0;z-index:60;padding:24px;
+  display:none;place-items:center;
+  background:rgba(6,7,9,.6);
+  backdrop-filter:blur(14px) saturate(.7);
+  -webkit-backdrop-filter:blur(14px) saturate(.7);
+}
+.scrim.open{display:grid;animation:scrim-in .18s ease both}
+@keyframes scrim-in{
+  from{opacity:0;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px)}
+  to{opacity:1;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+}
 .dlg{
   width:min(400px,100%);border-radius:var(--r);overflow:hidden;
   background:var(--slab-2);
