@@ -11,7 +11,15 @@ const UI_ASSETS = require("./uiassets");
 // The bridge already owns an http listener for the websocket upgrade, so the
 // app window is served from that same port. One port, nothing to configure.
 
-function createUi(cfg) {
+// The app window is the app. When its page goes away the bridge has nothing
+// left to serve, so it should stop rather than linger in the background.
+// The page holds an event stream open; losing every stream is the signal.
+// A short grace period lets a reload reconnect without killing anything, and
+// the watch only arms once a window has actually shown up, so a browser that
+// fails to open does not shut the bridge down on its own.
+const IDLE_GRACE_MS = 6000;
+
+function createUi(cfg, onIdle) {
   const state = {
     port: cfg.port,
     provider: "",
@@ -45,6 +53,16 @@ function createUi(cfg) {
   }
 
   const clients = new Set();
+  let everConnected = false;
+  let idleTimer = null;
+
+  function armIdle() {
+    if (!onIdle || !everConnected || clients.size) return;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!clients.size) onIdle();
+    }, IDLE_GRACE_MS);
+  }
 
   function push() {
     const payload = "data: " + JSON.stringify(state) + "\n\n";
@@ -164,7 +182,12 @@ function createUi(cfg) {
       });
       res.write("data: " + JSON.stringify(state) + "\n\n");
       clients.add(res);
-      req.on("close", () => clients.delete(res));
+      everConnected = true;
+      clearTimeout(idleTimer);
+      req.on("close", () => {
+        clients.delete(res);
+        armIdle();
+      });
       return;
     }
 
@@ -174,7 +197,7 @@ function createUi(cfg) {
 
   refreshWorlds();
 
-  return { handle, set, note, state, refreshWorlds };
+  return { handle, set, note, state, refreshWorlds, windowSeen: () => everConnected };
 }
 
 // Opens the page as its own window, so it reads as an app and not a browser

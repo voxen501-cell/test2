@@ -229,8 +229,12 @@ select.well option{background:var(--slab);color:var(--ink)}
 .plate:hover{background:linear-gradient(#3c414a,var(--slab-3))}
 .plate:active{--lip:0px;transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
 
-/* left: the world's name and when it was last played */
-.tile__open{
+/* the whole card opens the world, so the name plate is a label on it rather
+   than a control of its own */
+.tile{cursor:pointer}
+.tile:hover .tile__open{background:linear-gradient(#3c414a,var(--slab-3))}
+.tile:active .tile__open{--lip:0px;transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+.tile__open{pointer-events:none;
   flex:1;min-width:0;padding:0 10px;text-align:left;color:var(--ink);
   display:flex;flex-direction:column;justify-content:center;
 }
@@ -265,6 +269,15 @@ select.well option{background:var(--slab);color:var(--ink)}
 }
 .panel h2{font-size:14.5px;font-weight:700;margin:0 0 4px}
 .panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 16px}
+.panel .body{font-size:13px;color:var(--ink-2);margin:0 0 12px;line-height:1.65;max-width:62ch}
+.panel .body:last-child{margin-bottom:0}
+.panel .body b{color:var(--ink);font-weight:650}
+code.inline{
+  font:12px/1 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color:var(--green-lit);background:var(--deep);
+  padding:2px 5px;border-radius:var(--r-sm);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.6);
+}
 .cmdrow{display:flex;gap:10px;align-items:stretch}
 .cmdrow code{
   flex:1;display:flex;align-items:center;padding:0 14px;border-radius:var(--r);
@@ -390,6 +403,10 @@ select.well option{background:var(--slab);color:var(--ink)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
       Activity
     </button>
+    <button class="tab" data-view="about">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.6"/></svg>
+      About
+    </button>
     <div class="rail__foot">Not an official Minecraft product.<br>Not associated with Mojang.</div>
   </nav>
 
@@ -439,6 +456,70 @@ select.well option{background:var(--slab);color:var(--ink)}
           <p class="sub">What the AI can actually see while you play.</p>
           <div id="factsLong" style="font-size:13px;color:var(--ink-2)">Nothing yet.</div>
         </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-about">
+      <div class="head"><h1>About</h1></div>
+      <div class="scroll">
+
+        <div class="panel">
+          <h2>What this is</h2>
+          <p class="sub">Bedrock AI lets you talk to a real AI while you play, in chat.</p>
+          <p class="body">You type a question in Minecraft chat and the answer comes back
+            from a live language model. It can also do things for you - give items, change
+            the weather, teleport you, clear the trees above your head - because it can run
+            commands in your world.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Why is this an app, and not just an add-on?</h2>
+          <p class="body">This is the question I got the most, so here is the honest answer.</p>
+          <p class="body">Add-on scripts run <b>inside</b> Minecraft, and Minecraft does not let
+            them reach the internet. The module that would allow it, <code
+            class="inline">@minecraft/server-net</code>, only exists on Bedrock Dedicated
+            Server - the software you rent for a hosted server. It is not in the game you play
+            at home. So a pack on its own can never call an AI, no matter how it is written.</p>
+          <p class="body">But Minecraft can reach out on its own. The game has a WebSocket
+            client built in, and <code class="inline">/connect</code> tells it to connect to a
+            server on your computer. That is what this app is: a small server running on your
+            machine. Your chat goes to it, it asks the AI, and it sends commands back into your
+            world.</p>
+          <p class="body">So the two halves do different jobs. The behaviour pack this app
+            installs reports what is happening around you - your health, inventory, biome, what
+            you are holding - and the app carries that to the AI and brings the answer back.
+            Neither half can do the job alone.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Why do I still have to type /connect?</h2>
+          <p class="body">Because nothing outside Minecraft can make it connect. Microsoft
+            documents a set of links that can drive the game from outside - open the store,
+            join a realm, import a pack, load a world - and this app uses the one that loads a
+            world. There is no link for the WebSocket connection.</p>
+          <p class="body">So the command has to be pasted once, each time you start playing.
+            Opening a world from the Worlds tab copies it for you, so it is press <b>T</b>, then
+            <b>Ctrl+V</b>, then <b>Enter</b>.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Does it change my worlds?</h2>
+          <p class="body">Only the world you choose, and only by adding the behaviour pack to
+            it. Nothing else in the world is touched, and the app always asks before it writes
+            anything. The AI can run commands while you are connected, so keep cheats on only
+            in worlds where you are happy for that.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Made by VoxenMC2</h2>
+          <p class="body">I make free Minecraft Bedrock add-ons, shaders and texture packs,
+            plus browser tools for building your own. Bedrock AI came out of wanting a companion
+            in my own worlds that could actually see what was going on around me.</p>
+          <p class="body">More of my work is at <b>nebuxmc.com</b>.</p>
+          <p class="sub" style="margin:14px 0 0">Not an official Minecraft product. Not approved
+            by or associated with Mojang or Microsoft.</p>
+        </div>
+
       </div>
     </div>
 
@@ -554,6 +635,8 @@ function draw() {
     var tile = document.createElement("div");
     tile.className = "tile";
     tile.style.animationDelay = (i < 18 ? i * 22 : 0) + "ms";
+    tile.title = "Open " + w.name + " in Minecraft";
+    tile.onclick = function () { launch(w); };
 
     var shot = document.createElement("div");
     shot.className = "tile__shot";
@@ -578,10 +661,8 @@ function draw() {
     var row = document.createElement("div");
     row.className = "tile__row";
 
-    var open = document.createElement("button");
+    var open = document.createElement("div");
     open.className = "plate tile__open";
-    open.title = "Open " + w.name + " in Minecraft";
-    open.onclick = function () { launch(w); };
     open.innerHTML = '<div class="tile__name"></div><div class="tile__date"></div>';
     open.firstChild.textContent = w.name;
     open.lastChild.textContent = shortDate(w.played);

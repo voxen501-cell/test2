@@ -194,6 +194,17 @@ function hostingPlatform() {
   return null;
 }
 
+// Closing the app window stops the bridge with it, so nothing is left
+// listening on localhost after the app is gone.
+let shuttingDown = false;
+
+function shutDown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log("App window closed, stopping the bridge.");
+  setTimeout(() => process.exit(0), 120);
+}
+
 function log(...args) {
   const t = new Date().toTimeString().slice(0, 8);
   if (ui) ui.note("[" + t + "] " + args.join(" "));
@@ -598,7 +609,9 @@ function start() {
   // plain port in PORT. Certificates and a hand-picked port are for a bare VPS
   // only; on these platforms they mean a crash at boot or an unreachable app.
   const platform = hostingPlatform();
-  ui = createUi(cfg);
+  // On a managed host there is no window and nobody to close it, so the
+  // shutdown watch is only wired up for a local run.
+  ui = createUi(cfg, platform ? null : shutDown);
   if (platform && cfg.tlsCertPath) {
     log("Running on " + platform + ", which already handles TLS.");
     log("Ignoring AI_TLS_CERT and AI_TLS_KEY - remove them from the dashboard.");

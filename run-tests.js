@@ -6,6 +6,7 @@ const FILES = [
   "test-context.js",
   "test-channel.js",
   "test-keepalive.js",
+  "test-lifecycle.js",
   "test-actions.js",
   "test-sequence.js",
   "test-encryption.js",
