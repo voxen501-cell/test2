@@ -1,10 +1,11 @@
 const fs = require("fs");
 const https = require("https");
+const http = require("http");
 const path = require("path");
 const { WebSocketServer } = require("ws");
 const { PROVIDERS } = require("./providers");
 const { createContext, PASSIVE_EVENTS } = require("./context");
-const { extract, promptSection } = require("./actions");
+const { extract, promptSection, setRawCommands } = require("./actions");
 const {
   createHandshake,
   extractClientKey,
@@ -19,8 +20,14 @@ const {
   sendPayload,
 } = require("./protocol");
 
-const CONFIG_PATH =
-  process.env.AICHAT_CONFIG || path.join(__dirname, "..", "config.json");
+function defaultConfigPath() {
+  if (process.pkg || process.env.AICHAT_PACKAGED) {
+    return path.join(path.dirname(process.execPath), "config.json");
+  }
+  return path.join(__dirname, "..", "config.json");
+}
+
+const CONFIG_PATH = process.env.AICHAT_CONFIG || defaultConfigPath();
 
 const DEFAULT_CONFIG = {
   provider: "groq",
@@ -41,9 +48,12 @@ const DEFAULT_CONFIG = {
   tlsCertPath: "",
   tlsKeyPath: "",
   postHandshakeMs: 500,
+  keepAliveMs: 30000,
   subscribeGapMs: 80,
   useGameContext: true,
   allowActions: true,
+  allowRawCommands: false,
+  retryFailedActions: true,
   defaultAlwaysOn: true,
   maxActions: 20,
   actionGapMs: 150,
@@ -63,6 +73,7 @@ function envOverrides() {
   if (e.AI_MODEL) out.model = e.AI_MODEL;
   if (e.AI_TRIGGER !== undefined) out.trigger = e.AI_TRIGGER;
   if (e.AI_ENCRYPTION) out.encryption = e.AI_ENCRYPTION;
+  if (e.AI_KEEPALIVE_MS) out.keepAliveMs = parseInt(e.AI_KEEPALIVE_MS, 10);
   if (e.AI_TLS_CERT) out.tlsCertPath = e.AI_TLS_CERT;
   if (e.AI_TLS_KEY) out.tlsKeyPath = e.AI_TLS_KEY;
   if (e.AI_SYSTEM_PROMPT) out.systemPrompt = e.AI_SYSTEM_PROMPT;
@@ -101,6 +112,82 @@ function loadConfig() {
     );
   }
   return cfg;
+}
+
+let channelWarned = false;
+let channelAnnounced = false;
+
+// The live facts (health, inventory, biome, held item) ride in on a scoreboard
+// the behaviour pack writes. Say out loud whether that channel is alive, so a
+// broken pack never looks like a broken AI.
+function reportChannel(ws, cfg, ctx) {
+  if (!ctx.channelReport) return;
+  const report = ctx.channelReport();
+  if (report.ok) {
+    if (!channelAnnounced) {
+      channelAnnounced = true;
+      log("live world data OK: " + report.facts + " of " + report.total + " facts from the pack");
+      if (report.missing.length) {
+        log("  not reported by the pack: " + report.missing.join(", "));
+      }
+    }
+    return;
+  }
+  log("live world data MISSING: " + report.reason);
+  if (channelWarned) return;
+  channelWarned = true;
+  log("  the AI cannot see health, inventory, biome or held item until this is fixed");
+  log("  check that the AI Companion behaviour pack is enabled in this world");
+  tell(
+    ws,
+    "@a",
+    "The AI cannot read your health or inventory - the AI Companion behaviour pack is not reporting. Enable it in the world settings and rejoin."
+  );
+}
+
+// "No targets matched selector" on a kill or a tag is an empty search, not a
+// mistake the model can fix by rewriting the command.
+const EMPTY_SEARCH_VERBS = ["kill", "tag"];
+
+function harmlessMiss(commandLine, why) {
+  if (!/no targets matched/i.test(why)) return false;
+  const verb = String(commandLine).trim().split(/\s+/)[0].toLowerCase();
+  return EMPTY_SEARCH_VERBS.includes(verb);
+}
+
+// A proxy in front of the bridge - Cloudflare, a tunnel, most load balancers -
+// hangs up a websocket that has been quiet for a while, and a player standing
+// still sends nothing at all. A ping frame is traffic, so the link survives.
+function startKeepAlive(ws, cfg) {
+  const every = cfg.keepAliveMs;
+  if (!every || every < 1000) return;
+  stopKeepAlive(ws);
+  ws.voxaiKeepAlive = setInterval(() => {
+    if (ws.readyState !== ws.OPEN) return stopKeepAlive(ws);
+    try {
+      ws.ping();
+    } catch (err) {
+      stopKeepAlive(ws);
+    }
+  }, every);
+  if (ws.voxaiKeepAlive.unref) ws.voxaiKeepAlive.unref();
+}
+
+function stopKeepAlive(ws) {
+  if (!ws.voxaiKeepAlive) return;
+  clearInterval(ws.voxaiKeepAlive);
+  ws.voxaiKeepAlive = null;
+}
+
+// Which managed host are we on, if any. Each one puts its own name in the
+// environment, and each one puts TLS in front of the app rather than in it.
+function hostingPlatform() {
+  const e = process.env;
+  if (e.RENDER || e.RENDER_SERVICE_ID) return "Render";
+  if (e.RAILWAY_ENVIRONMENT || e.RAILWAY_PROJECT_ID) return "Railway";
+  if (e.FLY_APP_NAME) return "Fly.io";
+  if (e.DYNO) return "Heroku";
+  return null;
 }
 
 function log(...args) {
@@ -222,6 +309,62 @@ function parseMessage(cfg, body, session) {
   return null;
 }
 
+async function followUp(ws, cfg, ctx, session, sender, question, contextBlock, note) {
+  try {
+    const scratch = {
+      history: [...session.history, { role: "user", content: question }],
+      stamps: [],
+    };
+    const raw = await ask(cfg, scratch, note, contextBlock);
+    const found = extract(raw, sender, cfg.actionsAllowed, cfg.maxActions);
+    if (!found.actions.length) return { fixed: false, text: found.text };
+
+    let ok = 0;
+    for (const action of found.actions) {
+      if (action.delay) {
+        await sleep(action.delay);
+        continue;
+      }
+      log("FOLLOW UP " + action.name + " -> " + action.command);
+      const result = ctx ? await ctx.run(ws, action.command, 4000) : null;
+      if (!result || result.statusCode === undefined || result.statusCode >= 0) ok++;
+      else log("  still failed: " + result.statusMessage);
+      await sleep(cfg.actionGapMs);
+    }
+    log("follow up ran " + ok + " of " + found.actions.length);
+    return { fixed: ok > 0, text: found.text };
+  } catch (err) {
+    log("follow up failed: " + err.message);
+    return { fixed: false };
+  }
+}
+
+async function retryFailedActions(
+  ws,
+  cfg,
+  ctx,
+  session,
+  sender,
+  question,
+  contextBlock,
+  failures
+) {
+  if (cfg.retryFailedActions === false) return { fixed: false };
+
+  const NL = String.fromCharCode(10);
+  const report =
+    "Those commands did not run. The game reported:" +
+    NL +
+    [...new Set(failures)].slice(0, 5).join(NL) +
+    NL +
+    "Work out what was wrong, usually a block or item name that does not exist " +
+    "in Bedrock, and write the corrected ACTION lines. Do not repeat a command " +
+    "that already failed. If you cannot fix it, say so plainly and write no actions.";
+
+  log("asking the model to correct itself");
+  return followUp(ws, cfg, ctx, session, sender, question, contextBlock, report);
+}
+
 async function handleChat(ws, cfg, body, ctx) {
   const preSession = body.sender ? getSession(body.sender, cfg) : null;
   const parsed = parseMessage(cfg, body, preSession);
@@ -265,6 +408,17 @@ async function handleChat(ws, cfg, body, ctx) {
     const block = ctx ? await ctx.snapshot(ws, sender) : "";
     if (!block) tell(ws, "@a", "No world context could be gathered.");
     else for (const line of block.split(String.fromCharCode(10)).slice(1)) tell(ws, "@a", line);
+    if (ctx && ctx.channelReport) {
+      const report = ctx.channelReport();
+      tell(
+        ws,
+        "@a",
+        "--- live data channel: " + (report.ok ? "WORKING" : "BROKEN") + " (" + report.reason + ") ---"
+      );
+      if (report.missing.length) {
+        tell(ws, "@a", "not reported: " + report.missing.join(", "));
+      }
+    }
     tell(ws, "@a", "--- raw command replies ---");
     if (ctx) for (const line of ctx.rawReport()) tell(ws, "@a", line);
     log("debug dump sent to " + sender);
@@ -304,7 +458,7 @@ async function handleChat(ws, cfg, body, ctx) {
     let contextBlock = "";
     if (cfg.useGameContext && ctx) {
       contextBlock = await ctx.snapshot(ws, sender);
-      if (contextBlock) log("context: " + contextBlock.split("\n").length + " facts");
+      if (contextBlock) reportChannel(ws, cfg, ctx);
     }
     const raw = await ask(cfg, session, text, contextBlock);
 
@@ -312,6 +466,9 @@ async function handleChat(ws, cfg, body, ctx) {
     if (cfg.allowActions) {
       const found = extract(raw, sender, cfg.actionsAllowed, cfg.maxActions);
       spoken = found.text;
+      const failures = [];
+      const lookups = [];
+      let ran = 0;
       for (const action of found.actions) {
         if (action.delay) {
           log("ACTION wait " + action.delay + "ms");
@@ -319,8 +476,67 @@ async function handleChat(ws, cfg, body, ctx) {
           continue;
         }
         log("ACTION " + action.name + " -> " + action.command);
-        send(ws, action.command);
+        const result = ctx
+          ? await ctx.run(ws, action.command, 4000)
+          : (send(ws, action.command), null);
+
+        if (result && result.statusCode !== undefined && result.statusCode < 0) {
+          const why = String(result.statusMessage || "the game refused it");
+          if (harmlessMiss(action.command, why)) {
+            // nothing of that kind was nearby; that is an empty result, not a
+            // broken command, and retrying it only burns another round trip
+            log("  nothing matched: " + action.command);
+            ran++;
+          } else {
+            log("  FAILED: " + why);
+            failures.push(action.command.split(" ")[0] + ": " + why);
+          }
+        } else {
+          ran++;
+          if (action.reportResult && result && result.statusMessage) {
+            const found = String(result.statusMessage).trim();
+            log("  RESULT: " + found);
+            tell(ws, "@a", found);
+            lookups.push(found);
+          }
+        }
         await sleep(cfg.actionGapMs);
+      }
+
+      if (lookups.length && !failures.length) {
+        const NL = String.fromCharCode(10);
+        const note =
+          "The game answered your lookup:" +
+          NL +
+          lookups.join(NL) +
+          NL +
+          "If the player wanted to be taken there, write the ACTION tp line " +
+          "using those coordinates now. If they only wanted to know, just tell " +
+          "them the answer in words and write no actions.";
+        const after = await followUp(
+          ws, cfg, ctx, session, sender, text, contextBlock, note
+        );
+        if (after.text) spoken = after.text;
+      }
+
+      if (failures.length) {
+        log("actions failed: " + failures.length + ", succeeded: " + ran);
+        const retry = await retryFailedActions(
+          ws,
+          cfg,
+          ctx,
+          session,
+          sender,
+          text,
+          contextBlock,
+          failures
+        );
+        if (retry.fixed) {
+          spoken = retry.text || spoken;
+        } else {
+          const unique = [...new Set(failures)].slice(0, 2);
+          tell(ws, "@a", "That did not work. " + unique.join(" | "));
+        }
       }
       if (found.rejected.length) {
         log("rejected actions: " + found.rejected.join(", "));
@@ -355,6 +571,12 @@ async function handleChat(ws, cfg, body, ctx) {
 function start() {
   const cfg = loadConfig();
   const provider = PROVIDERS[cfg.provider];
+
+  setRawCommands(cfg.allowRawCommands === true);
+  if (cfg.allowRawCommands === true) {
+    log("Raw commands are ON. The AI can run any command it is asked to.");
+  }
+
   const wsOptions = {
     skipUTF8Validation: true,
     perMessageDeflate: false,
@@ -366,25 +588,53 @@ function start() {
     },
   };
 
-  let httpsServer = null;
+  // Render, Railway and Fly terminate TLS at their own edge and hand the app a
+  // plain port in PORT. Certificates and a hand-picked port are for a bare VPS
+  // only; on these platforms they mean a crash at boot or an unreachable app.
+  const platform = hostingPlatform();
+  if (platform && cfg.tlsCertPath) {
+    log("Running on " + platform + ", which already handles TLS.");
+    log("Ignoring AI_TLS_CERT and AI_TLS_KEY - remove them from the dashboard.");
+    cfg.tlsCertPath = "";
+    cfg.tlsKeyPath = "";
+  }
+  if (platform && !process.env.PORT) {
+    log("Warning: " + platform + " normally sets PORT itself. Leave it unset.");
+  }
+  if (platform && cfg.port < 1024) {
+    log("Port " + cfg.port + " cannot be opened on " + platform + "; using 10000 instead.");
+    log("Delete the PORT variable in the dashboard and let the platform pick.");
+    cfg.port = 10000;
+  }
+
+  // A plain GET has to answer something, or a platform health check marks the
+  // deploy dead and recycles it under a live Minecraft session.
+  const onRequest = (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("AI Companion bridge is up. Connect Minecraft with /connect wss://<this host>");
+  };
+
+  let listener = null;
   if (cfg.tlsCertPath && cfg.tlsKeyPath) {
     try {
-      httpsServer = https.createServer({
-        cert: fs.readFileSync(cfg.tlsCertPath),
-        key: fs.readFileSync(cfg.tlsKeyPath),
-      });
-      wsOptions.server = httpsServer;
+      listener = https.createServer(
+        {
+          cert: fs.readFileSync(cfg.tlsCertPath),
+          key: fs.readFileSync(cfg.tlsKeyPath),
+        },
+        onRequest
+      );
       log("TLS enabled, serving wss directly with no proxy in front");
     } catch (err) {
       fail("Could not read the TLS files: " + err.message);
     }
   } else {
-    wsOptions.port = cfg.port;
-    wsOptions.host = "0.0.0.0";
+    listener = http.createServer(onRequest);
   }
+  wsOptions.server = listener;
 
   const wss = new WebSocketServer(wsOptions);
-  if (httpsServer) httpsServer.listen(cfg.port, "0.0.0.0");
+  listener.listen(cfg.port, "0.0.0.0");
 
   log("Provider: " + provider.label + "  Model: " + cfg.model);
   log("Output mode: " + cfg.output);
@@ -431,6 +681,7 @@ function start() {
 
   wss.on("connection", (ws, req) => {
     log("Minecraft connected from " + (req.socket.remoteAddress || "unknown"));
+    startKeepAlive(ws, cfg);
 
     if (cfg.encryption === "off") {
       beginSession(ws, "no encryption");
@@ -504,6 +755,7 @@ function start() {
 
     ws.on("close", (code, reason) => {
       clearTimeout(ws.voxaiFallback);
+      stopKeepAlive(ws);
       log(
         "Minecraft disconnected" +
           (code ? " code=" + code : "") +

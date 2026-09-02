@@ -37,7 +37,7 @@ check("two actions in one reply both run", r.actions.length === 2, JSON.stringif
 console.log("\n=== clamping and cleanup ===");
 
 r = one("ACTION give diamond 9999");
-check("count is clamped to 64", r.actions[0].command.endsWith(" 64"), r.actions[0].command);
+check("count is raised to the game limit", r.actions[0].command.endsWith(" 9999"), r.actions[0].command);
 
 r = one("ACTION give diamond 0");
 check("count below one becomes one", r.actions[0].command.endsWith(" 1"), r.actions[0].command);
@@ -49,10 +49,14 @@ r = one("ACTION time 99999");
 check("time is clamped to a day", r.actions[0].command === "time set 24000", r.actions[0].command);
 
 r = one("ACTION xp 999999");
-check("xp is clamped", r.actions[0].command === 'xp 5000 "Bunny"', r.actions[0].command);
+check("xp allows large amounts", r.actions[0].command === 'xp 999999 "Bunny"', r.actions[0].command);
 
 r = one("ACTION effect speed 99999 99");
-check("effect seconds and level are clamped", r.actions[0].command === 'effect "Bunny" speed 3600 4', r.actions[0].command);
+check(
+  "effect allows long durations and high levels",
+  r.actions[0].command === 'effect "Bunny" speed 99999 99',
+  r.actions[0].command
+);
 
 console.log("\n=== safety ===");
 
@@ -94,7 +98,11 @@ check(
 );
 
 r = one("ACTION summon ender_dragon");
-check("the ender dragon is blocked", r.actions.length === 0, JSON.stringify(r.actions));
+check(
+  "nothing is blocked any more, even the ender dragon",
+  r.actions.length === 1,
+  JSON.stringify(r.actions)
+);
 
 r = one("ACTION give ../../etc/passwd 1");
 check("a path style item is rejected", r.actions.length === 0, JSON.stringify(r.actions));

@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test.js && node test-context.js && node test-actions.js && node test-sequence.js && node test-encryption.js"
+    "test": "node test.js && node test-context.js && node test-channel.js && node test-keepalive.js && node test-actions.js && node test-sequence.js && node test-encryption.js",
+    "build": "pkg . --output dist/AI-Companion-Bridge.exe"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +18,18 @@
   "private": true,
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.22.0"
+  },
+  "bin": "src/server.js",
+  "pkg": {
+    "scripts": [
+      "src/**/*.js"
+    ],
+    "targets": [
+      "node22-win-x64"
+    ],
+    "outputPath": "dist"
   }
 }

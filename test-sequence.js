@@ -44,9 +44,9 @@ r = one("ACTION wait 0.01");
 check("a tiny wait is raised to a usable pause", r.actions[0].delay === 200, JSON.stringify(r.actions));
 
 const runaway = [];
-for (let i = 0; i < 30; i++) runaway.push("ACTION give diamond 1");
+for (let i = 0; i < 90; i++) runaway.push("ACTION give diamond 1");
 r = one(runaway.join("\n"));
-check("the action cap stops a runaway reply", r.actions.length === 20, String(r.actions.length));
+check("the action cap stops a runaway reply", r.actions.length === 60, String(r.actions.length));
 
 console.log("\n=== new actions ===");
 
@@ -109,15 +109,15 @@ check(
 
 r = one("ACTION enchant sharpness 99");
 check(
-  "enchant level is clamped",
-  r.actions[0].command === 'enchant "Bunny" sharpness 5',
+  "enchant allows high levels",
+  r.actions[0].command === 'enchant "Bunny" sharpness 99',
   JSON.stringify(r.actions)
 );
 
 r = one("ACTION damage 999");
 check(
-  "damage is clamped",
-  r.actions[0].command === 'damage "Bunny" 20',
+  "damage allows any amount",
+  r.actions[0].command === 'damage "Bunny" 999',
   JSON.stringify(r.actions)
 );
 
@@ -130,15 +130,37 @@ check(
 
 r = one("ACTION clear 8 leaves");
 check(
-  "clearing one block type uses replace mode",
-  r.actions[0].command === "fill ~-8 ~-8 ~-8 ~8 ~8 ~8 air 0 replace leaves",
-  JSON.stringify(r.actions)
+  "a word like leaves expands into every real leaf block",
+  r.actions.length > 5 &&
+    r.actions.every((a) => /^fill .* air 0 replace \w+$/.test(a.command)) &&
+    r.actions.some((a) => a.command.endsWith("oak_leaves")) &&
+    r.actions.some((a) => a.command.endsWith("birch_leaves")) &&
+    !r.actions.some((a) => a.command.endsWith(" leaves")),
+  JSON.stringify(r.actions.map((a) => a.command.split(" ").pop()))
 );
+
+r = one("ACTION clear 10 tree");
+check(
+  "the word tree clears logs and leaves together",
+  r.actions.some((a) => a.command.endsWith("oak_log")) &&
+    r.actions.some((a) => a.command.endsWith("oak_leaves")),
+  JSON.stringify(r.actions.map((a) => a.command.split(" ").pop()))
+);
+
+r = one("ACTION clear 6 oak_log oak_leaves");
+check(
+  "several block names can be given at once",
+  r.actions.length === 2,
+  JSON.stringify(r.actions.map((a) => a.command.split(" ").pop()))
+);
+
+r = one("ACTION clear 6 notarealblock!!");
+check("a nonsense block name is rejected", r.actions.length === 0, JSON.stringify(r.actions));
 
 r = one("ACTION clear 999");
 check(
-  "clear radius is capped at twelve",
-  r.actions[0].command === "fill ~-12 ~-12 ~-12 ~12 ~12 ~12 air",
+  "clear radius stops at the engine limit",
+  r.actions[0].command === "fill ~-15 ~-15 ~-15 ~15 ~15 ~15 air",
   JSON.stringify(r.actions)
 );
 
@@ -154,6 +176,37 @@ check(
   r.actions[0].command === "fill 0 60 0 10 65 10 minecraft:stone",
   JSON.stringify(r.actions)
 );
+
+r = one("ACTION locate biome jungle");
+check(
+  "locate biome builds the right command",
+  r.actions[0].command === "locate biome jungle" && r.actions[0].reportResult === true,
+  JSON.stringify(r.actions)
+);
+
+r = one("ACTION locate structure village");
+check(
+  "locate structure works",
+  r.actions[0].command === "locate structure village",
+  JSON.stringify(r.actions)
+);
+
+r = one("ACTION locate desert");
+check(
+  "a bare name is treated as a biome",
+  r.actions[0].command === "locate biome desert",
+  JSON.stringify(r.actions)
+);
+
+r = one("ACTION locate biome minecraft:swamp");
+check(
+  "the namespace prefix is stripped",
+  r.actions[0].command === "locate biome swamp",
+  JSON.stringify(r.actions)
+);
+
+r = one("ACTION locate biome ../../bad");
+check("a bad biome name is rejected", r.actions.length === 0, JSON.stringify(r.actions));
 
 console.log("\n=== prompt ===");
 

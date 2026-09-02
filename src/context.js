@@ -13,6 +13,15 @@ const FACT_LABELS = {
   xp_level: "Player experience level is",
   biome: "The biome is",
   weather: "The weather is",
+  position: "The player is standing at",
+  game_mode: "Their game mode is",
+  looking_at: "They are looking at",
+  nearby_mobs: "Mobs within 24 blocks:",
+  spawn_point: "Their respawn point is at",
+  last_death:
+    "They last died at these coordinates, use them directly if asked to go back:",
+  inventory: "Their inventory holds",
+  free_slots: "Empty inventory slots:",
 };
 
 function parseScoreboard(body) {
@@ -99,6 +108,8 @@ function createContext(cfg, log) {
   let worldName = null;
   let worldNameChecked = false;
   const lastRaw = {};
+  const channel = { checked: false, ok: false, facts: 0, reason: "not checked yet" };
+  let lastFactKeys = new Set();
 
   function handleResponse(msg) {
     const id = msg.header && msg.header.requestId;
@@ -185,6 +196,14 @@ function createContext(cfg, log) {
       xp_level: "their experience level",
       biome: "the biome",
       weather: "the weather",
+      position: "their exact position",
+      game_mode: "their game mode",
+      looking_at: "what they are looking at",
+      nearby_mobs: "what mobs are nearby",
+      spawn_point: "their respawn point",
+      last_death: "where they last died",
+      inventory: "what is in their inventory",
+      free_slots: "how much inventory space they have",
     };
     if (!missing.length) {
       return (
@@ -261,10 +280,24 @@ function createContext(cfg, log) {
     }
 
     const facts = parseScoreboard(board);
+    channel.checked = true;
+    channel.facts = facts.length;
+    if (!board) {
+      channel.ok = false;
+      channel.reason = "scoreboard players list got no reply from Minecraft";
+    } else if (!facts.length) {
+      channel.ok = false;
+      channel.reason =
+        "scoreboard replied but held no voxai_data rows - the behaviour pack is not running in this world";
+    } else {
+      channel.ok = true;
+      channel.reason = facts.length + " of " + Object.keys(FACT_LABELS).length + " live facts";
+    }
     for (const fact of facts) {
       lines.push(FACT_LABELS[fact.key] + " " + fact.value + ".");
     }
     const known = new Set(facts.map((f) => f.key));
+    lastFactKeys = known;
 
     const recent = [];
     const broken = topEntries(activity.broken, 4);
@@ -304,7 +337,29 @@ function createContext(cfg, log) {
     return out;
   }
 
-  return { run, note, snapshot, handleResponse, rawReport, activity, PASSIVE_EVENTS };
+  function channelReport() {
+    return {
+      checked: channel.checked,
+      ok: channel.ok,
+      facts: channel.facts,
+      total: Object.keys(FACT_LABELS).length,
+      reason: channel.reason,
+      missing: channel.ok
+        ? Object.keys(FACT_LABELS).filter((k) => !lastFactKeys.has(k))
+        : Object.keys(FACT_LABELS),
+    };
+  }
+
+  return {
+    run,
+    note,
+    snapshot,
+    handleResponse,
+    rawReport,
+    channelReport,
+    activity,
+    PASSIVE_EVENTS,
+  };
 }
 
 module.exports = {

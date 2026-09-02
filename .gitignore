@@ -6,3 +6,7 @@ tunnel-config.json
 plain-config.json
 enc-config.json
 *.log
+
+# built exe, not needed to deploy and too big for git
+dist/
+*.mcpack

@@ -1,0 +1,12 @@
+# Render picks this up on its own once the repo is connected.
+# The provider and key live in config.json, which ships with this repo.
+# Do NOT add PORT, AI_TLS_CERT or AI_TLS_KEY here - Render supplies the port and
+# terminates TLS itself, and setting them stops the app from booting.
+services:
+  - type: web
+    name: ai-companion-bridge
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /
