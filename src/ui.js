@@ -7,10 +7,6 @@ const path = require("path");
 const ASSETS = __dirname;
 const PAGE = fs.readFileSync(path.join(ASSETS, "app.html"), "utf8");
 const UI_ASSETS = require("./uiassets");
-const FONTS = {
-  "/font/seven.otf": path.join(ASSETS, "fonts", "MinecraftSeven.otf"),
-  "/font/ten.otf": path.join(ASSETS, "fonts", "MinecraftTen.otf"),
-};
 
 // The bridge already owns an http listener for the websocket upgrade, so the
 // app window is served from that same port. One port, nothing to configure.
@@ -74,17 +70,6 @@ function createUi(cfg) {
 
   function handle(req, res) {
     const path = (req.url || "/").split("?")[0];
-
-    if (FONTS[path]) {
-      try {
-        const font = fs.readFileSync(FONTS[path]);
-        res.writeHead(200, { "Content-Type": "font/otf", "Cache-Control": "max-age=86400" });
-        return res.end(font);
-      } catch (err) {
-        res.writeHead(404);
-        return res.end();
-      }
-    }
 
     if (path.startsWith("/ui/")) {
       const asset = UI_ASSETS[path.slice(4)];

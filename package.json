@@ -32,8 +32,7 @@
     ],
     "outputPath": "dist",
     "assets": [
-      "src/app.html",
-      "src/fonts/*.otf"
+      "src/app.html"
     ]
   }
 }

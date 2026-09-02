@@ -6,284 +6,489 @@
 <title>Bedrock AI</title>
 <link rel="icon" href="/ui/logo.png">
 <style>
-/* Minecraft's menus are HTML rendered by Gameface, so the look comes from
-   nine-slice border-image frames plus the Minecraft fonts. These are the
-   game's own pieces, used the same way the game uses them. */
-@font-face{font-family:"Minecraft Seven";src:url("/font/seven.otf") format("opentype");font-display:block}
-@font-face{font-family:"Minecraft Ten";src:url("/font/ten.otf") format("opentype");font-display:block}
-
 :root{
-  /* straight out of the game's menus theme */
-  --primary:#3c8527;
-  --secondary:#d0d1d4;
-  --destructive:#ca3636;
-  --muted0:#d0d1d4;
-  --muted1:#b1b2b5;
-  --gray10:#1e1e1f;
-  --gray20:#232325;
-  --gray30:#313133;
-  --gray40:#48484a;
-  --gray50:#58585a;
-  --gray60:#8c8d90;
-  --caret:#6cc349;
+  /* the accent is the logo's own blue-to-green run */
+  --blue:#3b9eff;
+  --green:#3ed44b;
+  --accent:#3b9eff;
 
-  --ui:"Minecraft Seven","Segoe UI",sans-serif;
-  --title:"Minecraft Ten","Minecraft Seven","Segoe UI",sans-serif;
+  --bg:#0e1116;
+  --surface:#161a21;
+  --surface-2:#1c212a;
+  --surface-3:#242a35;
+  --line:#252b36;
+  --line-2:#333b48;
+
+  --text:#e8ecf2;
+  --text-2:#a8b2c1;
+  --text-3:#6f7987;
+
+  --ok:#3ed44b;
+  --warn:#f2b33d;
+  --bad:#ff5f56;
+
+  --r:10px;
+  --r-sm:7px;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
 }
 
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{
-  color:#fff;font-family:var(--ui);font-size:14px;line-height:1.5;
-  display:flex;flex-direction:column;overflow:hidden;
-  background:#101011 url("/ui/bg.jpg") center/cover fixed no-repeat;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  display:flex;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
 }
-body::before{content:"";position:fixed;inset:0;background:rgba(16,16,17,.5);z-index:-1}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px;border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#48525f}
 
-/* ---- header ---- */
-.hdr{
-  flex:none;display:flex;align-items:center;gap:12px;
-  background:#f4f5f5;color:#1e1e1f;border-bottom:2px solid #c9cacc;
-  padding:7px 14px;
+/* ══ sidebar ══════════════════════════════════════════════ */
+.side{
+  width:232px;flex:none;
+  background:var(--surface);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+  padding:18px 14px 14px;
 }
-.hdr__logo{width:30px;height:30px;flex:none;image-rendering:auto}
-.hdr__name{font-family:var(--title);font-size:15px;letter-spacing:.02em}
-.hdr__spacer{flex:1}
-.hdr__state{display:flex;align-items:center;gap:8px;font-size:12px}
-.led{width:11px;height:11px;flex:none;background:var(--gray50)}
-.led.ok{background:var(--primary)}
-.led.wait{background:#c9962b}
-.led.bad{background:var(--destructive)}
-.hdr__engine{font-size:11px;color:#58585a}
+.brand{display:flex;align-items:center;gap:11px;padding:0 6px 20px}
+.brand img{width:34px;height:34px;flex:none}
+.brand__name{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.brand__sub{font-size:11px;color:var(--text-3);margin-top:-2px}
 
-/* ---- tabs ---- */
-.tabs{flex:none;display:flex;gap:4px;padding:10px 14px 0}
-.tab{
-  flex:1;background:rgba(35,35,37,.88);color:var(--muted0);
-  border:0;border-bottom:3px solid transparent;padding:10px 8px 8px;
-  font-family:var(--ui);font-size:13px;cursor:pointer;
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav__item{
+  display:flex;align-items:center;gap:11px;
+  padding:9px 11px;border-radius:var(--r-sm);
+  color:var(--text-2);font-size:13.5px;text-align:left;width:100%;
+  transition:background .12s, color .12s;
 }
-.tab:hover{background:rgba(72,72,74,.9);color:#fff}
-.tab.on{background:rgba(48,48,50,.95);color:#fff;border-bottom-color:#fff}
-.tab .n{color:var(--muted1);font-size:12px}
+.nav__item:hover{background:var(--surface-2);color:var(--text)}
+.nav__item.on{background:var(--surface-3);color:var(--text);font-weight:600}
+.nav__item svg{width:17px;height:17px;flex:none;opacity:.85}
+.nav__item .badge{
+  margin-left:auto;font-size:11px;color:var(--text-3);
+  font-variant-numeric:tabular-nums;
+}
 
-.body{flex:1;min-height:0;display:flex;flex-direction:column;padding:11px 14px 12px}
-.view{flex:1;min-height:0;display:none;flex-direction:column}
-.view.on{display:flex}
-.toolbar{flex:none;display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.side__foot{margin-top:auto;display:flex;flex-direction:column;gap:10px}
 
-/* ---- pressable: the game's button ---- */
+/* status block */
+.status{
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px;
+}
+.status__top{display:flex;align-items:center;gap:9px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--text-3)}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(62,212,75,.16)}
+.dot.wait{background:var(--warn);box-shadow:0 0 0 3px rgba(242,179,61,.14)}
+.dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(255,95,86,.14)}
+.status__label{font-size:12.5px;font-weight:600}
+.status__meta{font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.45}
+.status__facts{
+  font-size:11px;margin-top:8px;padding-top:8px;
+  border-top:1px solid var(--line);color:var(--text-3);
+}
+.status__facts.ok{color:var(--ok)}
+.status__facts.bad{color:var(--warn)}
+.side__note{font-size:10.5px;color:var(--text-3);text-align:center;line-height:1.45}
+
+/* ══ main ═════════════════════════════════════════════════ */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.head{
+  flex:none;padding:20px 24px 14px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.head h1{font-size:19px;font-weight:650;margin:0;letter-spacing:-.02em}
+.head .count{color:var(--text-3);font-size:13px;font-weight:400;margin-left:2px}
+.head__tools{margin-left:auto;display:flex;gap:9px;align-items:center}
+
+.input{
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r-sm);color:var(--text);
+  padding:8px 11px;font-size:13px;outline:0;
+  transition:border-color .12s, background .12s;
+}
+.input:focus{border-color:var(--accent);background:var(--surface-3)}
+.input::placeholder{color:var(--text-3)}
+select.input{cursor:pointer;padding-right:28px;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%236f7987' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:12px}
+.search{position:relative}
+.search input{padding-left:31px;width:210px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-3);pointer-events:none}
+
 .btn{
-  font-family:var(--ui);font-size:13px;color:#fff;line-height:1;
-  padding:11px 18px;border:4px solid transparent;background:transparent;
-  border-image:url("/ui/btn_primary.png") 2 2 2 2 fill / 4px;
-  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  text-shadow:2px 2px 0 rgba(0,0,0,.35);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:8px 14px;border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+  transition:background .12s, border-color .12s, transform .06s;
 }
-.btn:hover{border-image-source:url("/ui/btn_primary_hover.png")}
-.btn:active{border-image-source:url("/ui/btn_primary_press.png")}
-.btn--sec{color:#1e1e1f;text-shadow:none;border-image-source:url("/ui/btn_secondary.png")}
-.btn--sec:hover{border-image-source:url("/ui/btn_secondary_hover.png")}
-.btn--sec:active{border-image-source:url("/ui/btn_secondary_press.png")}
-.btn[disabled]{opacity:.5;cursor:not-allowed;pointer-events:none}
+.btn:hover{background:var(--surface-3);border-color:var(--line-2)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:15px;height:15px}
+.btn--primary{
+  background:linear-gradient(135deg,var(--blue),var(--green));
+  border-color:transparent;color:#08131c;
+}
+.btn--primary:hover{filter:brightness(1.08);background:linear-gradient(135deg,var(--blue),var(--green))}
+.btn[disabled]{opacity:.45;pointer-events:none}
 
-/* ---- sunken field ---- */
-.field{
-  font-family:var(--ui);font-size:13px;color:#fff;background:transparent;
-  border:2px solid transparent;border-top-width:6px;
-  border-image:url("/ui/field.png") 3 1 1 1 fill / 6px 2px 2px 2px;
-  padding:8px 10px;outline:0;caret-color:var(--caret);
-}
-.field::placeholder{color:var(--muted1)}
-select.field{
-  cursor:pointer;padding-right:26px;-webkit-appearance:none;appearance:none;
-  background-image:linear-gradient(#fff,#fff),linear-gradient(#fff,#fff),linear-gradient(#fff,#fff);
-  background-size:3px 3px;background-repeat:no-repeat;
-  background-position:calc(100% - 15px) calc(50% - 1px),calc(100% - 12px) calc(50% + 2px),calc(100% - 9px) calc(50% - 1px);
-}
-select.field option{background:var(--gray30);color:#fff}
-#search{flex:1;min-width:150px}
-#account{min-width:168px}
-
-/* ---- world grid ---- */
+/* ══ world grid ═══════════════════════════════════════════ */
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 24px 24px}
 .grid{
-  flex:1;min-height:0;overflow-y:auto;align-content:start;
-  display:grid;gap:10px;padding-right:6px;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  display:grid;gap:16px;
+  grid-template-columns:repeat(auto-fill,minmax(216px,1fr));
 }
 .card{
-  border:0 solid transparent;border-bottom-width:2px;
-  border-image:url("/ui/card.png") 0 1 2 1 fill / 0 2px 4px 2px;
-  display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+  cursor:pointer;position:relative;
+  transition:border-color .14s, transform .14s, box-shadow .14s;
 }
-.card__shot{position:relative;aspect-ratio:16/9;cursor:pointer;background:#000 center/cover no-repeat}
-.card__shot.blank{
-  background-image:url("/ui/world.png");background-size:36px;
-  background-color:var(--gray20);image-rendering:pixelated;
-}
-.card__mode{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.6);padding:2px 7px 3px;font-size:11px}
-.card__ai{position:absolute;right:0;top:0;background:var(--primary);padding:2px 7px 3px;font-size:11px}
-.card__row{display:flex;align-items:stretch;min-height:46px}
-.card__main{
-  flex:1;min-width:0;cursor:pointer;padding:7px 10px;text-align:left;
-  border:4px solid transparent;
-  border-image:url("/ui/card_action.png") 2 2 2 2 fill / 4px;
-  font-family:var(--ui);color:#fff;
-}
-.card__main:hover{border-image-source:url("/ui/card_action_hover.png")}
-.card__main:active{border-image-source:url("/ui/card_action_press.png")}
-.card__name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card__date{font-size:11px;color:var(--muted1)}
-.card__edit{
-  flex:none;width:46px;cursor:pointer;background:transparent;
-  border:4px solid transparent;
-  border-image:url("/ui/pencil_btn.png") 2 2 2 2 fill / 4px;
+.card:hover{border-color:var(--line-2);transform:translateY(-2px);box-shadow:var(--shadow)}
+.card__shot{
+  position:relative;aspect-ratio:16/9;
+  background:var(--surface-2) center/cover no-repeat;
   display:grid;place-items:center;
 }
-.card__edit:hover{border-image-source:url("/ui/pencil_btn_hover.png")}
-.card__edit:active{border-image-source:url("/ui/pencil_btn_press.png")}
-.card__edit img{width:18px;height:16px;image-rendering:pixelated}
+.card__shot::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(14,17,22,.55),transparent 55%);
+}
+.card__shot .ph{width:34px;height:34px;color:var(--line-2)}
+.card__chips{position:absolute;left:9px;bottom:8px;display:flex;gap:5px;z-index:1}
+.chip{
+  font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  padding:2px 7px;border-radius:5px;
+  background:rgba(14,17,22,.72);backdrop-filter:blur(6px);color:var(--text-2);
+}
+.chip--ai{background:linear-gradient(135deg,var(--blue),var(--green));color:#08131c}
+.card__body{padding:10px 12px 12px;display:flex;align-items:flex-start;gap:8px}
+.card__text{flex:1;min-width:0}
+.card__name{
+  font-size:13.5px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card__meta{font-size:11.5px;color:var(--text-3);margin-top:1px}
+.iconbtn{
+  flex:none;width:30px;height:30px;border-radius:var(--r-sm);
+  display:grid;place-items:center;color:var(--text-3);
+  border:1px solid transparent;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.iconbtn:hover{background:var(--surface-3);color:var(--text);border-color:var(--line-2)}
+.iconbtn svg{width:15px;height:15px}
+.card__play{
+  position:absolute;inset:0;display:grid;place-items:center;
+  opacity:0;transition:opacity .14s;z-index:1;
+}
+.card:hover .card__play{opacity:1}
+.card__play span{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:99px;font-size:12.5px;font-weight:650;
+  background:rgba(14,17,22,.82);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.14);
+}
+.card__play svg{width:13px;height:13px}
 
-/* ---- chunky scrollbars ---- */
-::-webkit-scrollbar{width:10px}
-::-webkit-scrollbar-track{background:rgba(30,30,31,.7)}
-::-webkit-scrollbar-thumb{background:var(--gray60)}
-::-webkit-scrollbar-thumb:hover{background:var(--muted0)}
-
-.panel{background:rgba(48,48,50,.92);padding:16px 18px;margin-bottom:10px}
-.panel h2{font-family:var(--title);font-size:12px;margin:0 0 11px;font-weight:400}
+/* ══ panels for the other views ═══════════════════════════ */
+.panel{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px 22px;margin-bottom:16px;max-width:660px;
+}
+.panel h2{font-size:14px;font-weight:650;margin:0 0 4px}
+.panel .sub{font-size:12.5px;color:var(--text-3);margin:0 0 16px}
 .cmd{
-  display:block;padding:11px 12px;margin-bottom:11px;
-  border:2px solid transparent;border-top-width:6px;
-  border-image:url("/ui/field.png") 3 1 1 1 fill / 6px 2px 2px 2px;
-  font-family:var(--ui);font-size:15px;color:var(--caret);user-select:all;
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:12px 14px;margin-bottom:12px;
 }
-.steps{margin:12px 0 0;padding-left:19px;color:var(--muted1);font-size:12.5px}
-.steps li{margin:5px 0}
-.steps b{color:#fff}
-.note{color:var(--muted1);font-size:12.5px;min-height:18px}
-.note.good{color:var(--caret)}
-.note.bad{color:#e9a13b}
+.cmd code{
+  flex:1;font:14px/1 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color:var(--green);user-select:all;
+}
+.steps{margin:16px 0 0;padding-left:0;list-style:none;counter-reset:s}
+.steps li{
+  position:relative;padding-left:30px;margin:11px 0;
+  font-size:13px;color:var(--text-2);counter-increment:s;
+}
+.steps li::before{
+  content:counter(s);position:absolute;left:0;top:0;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--surface-3);color:var(--text-2);
+  font-size:11px;font-weight:650;display:grid;place-items:center;
+}
+.steps b{color:var(--text);font-weight:600}
+.hintbox{
+  background:var(--surface-2);border:1px solid var(--line);border-left:2px solid var(--accent);
+  border-radius:var(--r-sm);padding:11px 13px;font-size:12.5px;color:var(--text-2);margin-top:16px;
+}
 #log{
-  flex:1;min-height:0;overflow:auto;padding:11px 12px;background:rgba(30,30,31,.85);
-  font-family:Consolas,monospace;font-size:11.5px;line-height:1.6;
-  color:var(--muted1);white-space:pre-wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 16px;height:100%;overflow:auto;
+  font:11.5px/1.7 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color:var(--text-2);white-space:pre-wrap;
 }
-.empty{color:var(--muted1);font-size:13px;padding:16px 0;grid-column:1/-1}
-.foot{flex:none;text-align:center;font-size:11px;padding-top:8px;color:var(--muted1)}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex}
+.empty{
+  grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3);
+}
+.empty svg{width:38px;height:38px;margin-bottom:12px;opacity:.5}
+.empty p{margin:0;font-size:13.5px}
 
-/* ---- dialog ---- */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:50;padding:20px}
-.scrim.open{display:grid}
-.dlg{background:var(--gray30);width:min(420px,100%);border:2px solid #000}
-.dlg__bar{background:#f4f5f5;color:#1e1e1f;padding:9px 14px;font-family:var(--title);font-size:12px;text-align:center}
-.dlg__body{padding:16px}
-.dlg__shot{width:100%;aspect-ratio:16/9;background:var(--gray20) center/cover no-repeat;margin-bottom:12px}
-.dlg__q{font-size:14px;margin-bottom:6px}
-.dlg__note{color:var(--muted1);font-size:12.5px}
-.dlg__row{display:flex;gap:9px;justify-content:flex-end;padding:0 16px 16px}
+/* ══ dialog ═══════════════════════════════════════════════ */
+.scrim{
+  position:fixed;inset:0;background:rgba(8,10,14,.66);backdrop-filter:blur(3px);
+  display:none;place-items:center;z-index:60;padding:24px;
+}
+.scrim.open{display:grid;animation:fade .14s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.dlg{
+  background:var(--surface);border:1px solid var(--line-2);
+  border-radius:14px;width:min(400px,100%);overflow:hidden;box-shadow:var(--shadow);
+  animation:pop .16s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
+.dlg__shot{aspect-ratio:16/9;background:var(--surface-2) center/cover no-repeat}
+.dlg__body{padding:18px 20px}
+.dlg h3{margin:0 0 6px;font-size:15px;font-weight:650}
+.dlg p{margin:0;font-size:12.5px;color:var(--text-3);line-height:1.55}
+.dlg__row{display:flex;gap:9px;justify-content:flex-end;padding:0 20px 20px}
+
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);
+  background:var(--surface-3);border:1px solid var(--line-2);
+  border-radius:99px;padding:9px 18px;font-size:12.5px;
+  box-shadow:var(--shadow);opacity:0;pointer-events:none;
+  transition:opacity .18s, transform .18s;z-index:70;max-width:70vw;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.good{border-color:rgba(62,212,75,.4)}
+.toast.bad{border-color:rgba(242,179,61,.45)}
+
+/* ══ motion ═══════════════════════════════════════════════ */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes shimmer{to{background-position:-200% 0}}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(242,179,61,.14)}
+  50%{box-shadow:0 0 0 6px rgba(242,179,61,.04)}
+}
+
+.spinning{animation:spin .7s linear infinite}
+.dot.wait{animation:pulse 2s ease-in-out infinite}
+
+/* cards arrive in a short stagger; only the first screenful is delayed so a
+   long list still appears at once */
+.card{animation:rise .28s cubic-bezier(.2,.9,.3,1) both}
+
+/* thumbnails fade in as they decode, rather than popping */
+.card__shot img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .3s ease;
+}
+.card__shot img.ready{opacity:1}
+
+/* skeletons while the list loads */
+.skel{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+}
+.skel__shot{aspect-ratio:16/9}
+.skel__line{height:11px;border-radius:5px;margin:11px 12px 0}
+.skel__line.short{width:52%;height:9px;margin-bottom:14px;opacity:.6}
+.skel__shot,.skel__line{
+  background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 37%,var(--surface-2) 63%);
+  background-size:200% 100%;
+  animation:shimmer 1.3s linear infinite;
+}
+
+.view.on{animation:rise .22s cubic-bezier(.2,.9,.3,1) both}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <img class="hdr__logo" src="/ui/logo.png" alt="">
-  <span class="hdr__name">BEDROCK AI</span>
-  <span class="hdr__spacer"></span>
-  <span class="hdr__engine" id="engine">starting</span>
-  <span class="hdr__state"><span class="led" id="led"></span><span id="status">Starting</span></span>
-</div>
+<aside class="side">
+  <div class="brand">
+    <img src="/ui/logo.png" alt="">
+    <div>
+      <div class="brand__name">Bedrock AI</div>
+      <div class="brand__sub" id="engine">starting…</div>
+    </div>
+  </div>
 
-<div class="tabs">
-  <button class="tab on" data-view="worlds">Worlds <span class="n" id="tabCount"></span></button>
-  <button class="tab" data-view="connect">Connect</button>
-  <button class="tab" data-view="activity">Activity</button>
-</div>
+  <nav class="nav">
+    <button class="nav__item on" data-view="worlds">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Worlds <span class="badge" id="navCount"></span>
+    </button>
+    <button class="nav__item" data-view="connect">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><path d="M8 12h8"/></svg>
+      Connect
+    </button>
+    <button class="nav__item" data-view="activity">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Activity
+    </button>
+  </nav>
 
-<div class="body">
+  <div class="side__foot">
+    <div class="status">
+      <div class="status__top">
+        <span class="dot" id="dot"></span>
+        <span class="status__label" id="status">Starting</span>
+      </div>
+      <div class="status__meta" id="statusMeta">Setting things up…</div>
+      <div class="status__facts" id="facts" hidden></div>
+    </div>
+    <p class="side__note">Not an official Minecraft product.<br>Not approved by or associated with Mojang.</p>
+  </div>
+</aside>
+
+<main class="main">
 
   <div class="view on" id="view-worlds">
-    <div class="toolbar">
-      <select class="field" id="account" title="Show one account's worlds"></select>
-      <input class="field" id="search" type="text" placeholder="Search worlds" autocomplete="off">
-      <button class="btn btn--sec" id="rescan">Refresh</button>
+    <header class="head">
+      <h1>Worlds <span class="count" id="count"></span></h1>
+      <div class="head__tools">
+        <select class="input" id="account" title="Filter by account"></select>
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input class="input" id="search" type="text" placeholder="Search worlds" autocomplete="off">
+        </label>
+        <button class="btn" id="rescan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+          Refresh
+        </button>
+      </div>
+    </header>
+    <div class="scroll">
+      <div class="grid" id="grid"></div>
     </div>
-    <div class="grid" id="grid"><div class="empty">Looking for Minecraft&hellip;</div></div>
-    <div class="foot" id="hint">Click a world to open it. Click the pencil to add the AI.</div>
   </div>
 
   <div class="view" id="view-connect">
-    <div class="panel">
-      <h2>IN MINECRAFT CHAT</h2>
-      <code class="cmd" id="cmd">/connect localhost:8080</code>
-      <button class="btn" id="copy">Copy command</button>
-      <ol class="steps">
-        <li>Open a world with <b>cheats on</b> &mdash; the Worlds tab opens one for you</li>
-        <li>Press <b>T</b>, paste with <b>Ctrl+V</b>, press <b>Enter</b></li>
-        <li>Type <b>ai hello</b> to talk</li>
-      </ol>
-      <p class="steps" style="padding:0;margin-top:12px">Minecraft has no way to run this from
-        outside the game, so it is pasted once per session. Opening a world from the Worlds tab
-        copies it for you.</p>
-    </div>
-    <div class="panel">
-      <h2>LIVE WORLD DATA</h2>
-      <div class="note" id="facts">Nothing yet.</div>
+    <header class="head"><h1>Connect</h1></header>
+    <div class="scroll">
+      <div class="panel">
+        <h2>Run this once in Minecraft chat</h2>
+        <p class="sub">Opening a world from the Worlds tab copies it for you.</p>
+        <div class="cmd">
+          <code id="cmd">/connect localhost:8080</code>
+          <button class="btn" id="copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copy
+          </button>
+        </div>
+        <ol class="steps">
+          <li>Open a world with <b>cheats on</b></li>
+          <li>Press <b>T</b> for chat, paste with <b>Ctrl+V</b>, press <b>Enter</b></li>
+          <li>Type <b>ai hello</b> to start talking</li>
+        </ol>
+        <div class="hintbox">Minecraft has no way to run this command from outside the game,
+          so it has to be pasted once per session.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Live world data</h2>
+        <p class="sub">What the AI can actually see while you play.</p>
+        <div id="factsLong" style="font-size:13px;color:var(--text-2)">Nothing yet.</div>
+      </div>
     </div>
   </div>
 
   <div class="view" id="view-activity">
-    <div id="log">waiting&hellip;</div>
+    <header class="head"><h1>Activity</h1></header>
+    <div class="scroll"><div id="log">waiting…</div></div>
   </div>
 
-</div>
+</main>
 
 <div class="scrim" id="scrim">
   <div class="dlg">
-    <div class="dlg__bar">INSTALL AI</div>
+    <div class="dlg__shot" id="dlgShot"></div>
     <div class="dlg__body">
-      <div class="dlg__shot" id="dlgShot"></div>
-      <div class="dlg__q" id="dlgQ">Install the AI into this world?</div>
-      <div class="dlg__note" id="dlgNote"></div>
+      <h3 id="dlgTitle">Install the AI?</h3>
+      <p id="dlgNote"></p>
     </div>
     <div class="dlg__row">
-      <button class="btn btn--sec" id="dlgNo">Cancel</button>
-      <button class="btn" id="dlgYes">Install</button>
+      <button class="btn" id="dlgNo">Cancel</button>
+      <button class="btn btn--primary" id="dlgYes">Install</button>
     </div>
   </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 var grid = document.getElementById("grid");
 var logBox = document.getElementById("log");
 var search = document.getElementById("search");
 var account = document.getElementById("account");
-var hint = document.getElementById("hint");
 var allWorlds = [];
+var busy = false;
 
-/* ---- interface sounds ---- */
+function skeletons(n) {
+  var html = "";
+  for (var i = 0; i < n; i++) {
+    html += '<div class="skel"><div class="skel__shot"></div>' +
+            '<div class="skel__line"></div><div class="skel__line short"></div></div>';
+  }
+  grid.innerHTML = html;
+}
+
+var ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 6.5l3 3"/></svg>';
+var ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+var ICON_WORLD = '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>';
+
+/* ---- sound ---- */
 var SOUND = { click: new Audio("/ui/click.wav"), back: new Audio("/ui/back.wav") };
-for (var k in SOUND) SOUND[k].volume = 0.35;
+SOUND.click.volume = 0.3;
+SOUND.back.volume = 0.26;
 function beep(which) {
   var a = SOUND[which || "click"];
   try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
 }
-// every button in the app ticks, the way the game's do
 document.addEventListener("click", function (e) {
-  var el = e.target.closest ? e.target.closest("button,.card__shot") : null;
+  var el = e.target.closest ? e.target.closest("button,.card") : null;
   if (!el || el.disabled) return;
   beep(el.id === "dlgNo" || el.id === "rescan" ? "back" : "click");
 }, true);
 
-/* ---- tabs ---- */
-Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+/* ---- views ---- */
+Array.prototype.forEach.call(document.querySelectorAll(".nav__item"), function (t) {
   t.onclick = function () {
-    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (x) { x.className = "tab"; });
-    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (x) { x.className = "view"; });
-    t.className = "tab on";
+    Array.prototype.forEach.call(document.querySelectorAll(".nav__item"), function (x) {
+      x.className = "nav__item";
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (x) {
+      x.className = "view";
+    });
+    t.className = "nav__item on";
     document.getElementById("view-" + t.dataset.view).className = "view on";
   };
 });
+
+/* ---- toast ---- */
+var toast = document.getElementById("toast");
+var toastTimer = null;
+function say(text, good) {
+  toast.textContent = text;
+  toast.className = "toast show " + (good ? "good" : "bad");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toast.className = "toast"; }, 4200);
+}
 
 function iconUrl(w) {
   return "/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id);
@@ -291,17 +496,15 @@ function iconUrl(w) {
 
 function shortDate(ms) {
   var d = new Date(ms);
-  function p(n) { return (n < 10 ? "0" : "") + n; }
-  return p(d.getMonth() + 1) + "/" + p(d.getDate()) + "/" + String(d.getFullYear()).slice(2);
-}
-
-function say(text, good) {
-  hint.className = "foot note " + (good ? "good" : "bad");
-  hint.textContent = text;
+  var now = new Date();
+  var sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString(undefined, sameYear
+    ? { month: "short", day: "numeric" }
+    : { month: "short", day: "numeric", year: "numeric" });
 }
 
 function draw() {
-  var keep = grid.scrollTop;
+  var keep = grid.parentNode.scrollTop;
   var q = search.value.trim().toLowerCase();
   var only = account.value;
 
@@ -309,68 +512,75 @@ function draw() {
   if (only !== "") list = list.filter(function (w) { return String(w.root) === only; });
   if (q) list = list.filter(function (w) { return w.name.toLowerCase().indexOf(q) >= 0; });
 
-  document.getElementById("tabCount").textContent = "(" + list.length + ")";
+  document.getElementById("count").textContent = list.length;
+  document.getElementById("navCount").textContent = allWorlds.length || "";
 
   grid.innerHTML = "";
   if (!list.length) {
-    var e = document.createElement("div");
-    e.className = "empty";
-    e.textContent = allWorlds.length ? "No world matches that." : "No worlds found.";
-    grid.appendChild(e);
+    grid.innerHTML = '<div class="empty">' + ICON_WORLD +
+      "<p>" + (allWorlds.length ? "No world matches that search." : "No worlds found.") + "</p></div>";
     return;
   }
 
-  list.forEach(function (w) {
+  list.forEach(function (w, i) {
     var card = document.createElement("div");
     card.className = "card";
+    card.style.animationDelay = (i < 18 ? i * 22 : 0) + "ms";
+    card.title = "Open " + w.name + " in Minecraft";
+    card.onclick = function () { launch(w); };
 
     var shot = document.createElement("div");
-    shot.className = "card__shot" + (w.icon ? "" : " blank");
-    if (w.icon) shot.style.backgroundImage = "url(" + iconUrl(w) + ")";
-    shot.title = "Open " + w.name;
-    shot.onclick = function () { launch(w); };
-    if (w.mode) {
-      var m = document.createElement("span");
-      m.className = "card__mode";
-      m.textContent = w.mode;
-      shot.appendChild(m);
-    }
-    if (w.installed) {
-      var a = document.createElement("span");
-      a.className = "card__ai";
-      a.textContent = "AI";
-      shot.appendChild(a);
+    shot.className = "card__shot";
+    if (w.icon) {
+      var img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.alt = "";
+      img.onload = function () { this.className = "ready"; };
+      img.src = iconUrl(w);
+      shot.appendChild(img);
+    } else {
+      shot.innerHTML = ICON_WORLD;
     }
 
-    var row = document.createElement("div");
-    row.className = "card__row";
+    var chips = document.createElement("div");
+    chips.className = "card__chips";
+    if (w.mode) chips.innerHTML = '<span class="chip">' + w.mode + "</span>";
+    if (w.installed) chips.innerHTML += '<span class="chip chip--ai">AI</span>';
+    shot.appendChild(chips);
 
-    var main = document.createElement("button");
-    main.className = "card__main";
-    main.title = "Open " + w.name;
-    main.onclick = function () { launch(w); };
+    var play = document.createElement("div");
+    play.className = "card__play";
+    play.innerHTML = "<span>" + ICON_PLAY + "Play</span>";
+    shot.appendChild(play);
+
+    var body = document.createElement("div");
+    body.className = "card__body";
+    var text = document.createElement("div");
+    text.className = "card__text";
     var nm = document.createElement("div");
     nm.className = "card__name";
     nm.textContent = w.name;
-    var dt = document.createElement("div");
-    dt.className = "card__date";
-    dt.textContent = shortDate(w.played);
-    main.appendChild(nm);
-    main.appendChild(dt);
+    var meta = document.createElement("div");
+    meta.className = "card__meta";
+    meta.textContent = shortDate(w.played);
+    text.appendChild(nm);
+    text.appendChild(meta);
 
     var edit = document.createElement("button");
-    edit.className = "card__edit";
-    edit.title = w.installed ? "AI installed - click to reinstall" : "Install the AI here";
-    edit.innerHTML = '<img src="/ui/pencil.png" alt="Edit">';
+    edit.className = "iconbtn";
+    edit.innerHTML = ICON_PENCIL;
+    edit.title = w.installed ? "AI installed — reinstall" : "Install the AI into this world";
+    if (w.installed) edit.style.color = "var(--green)";
     edit.onclick = function (ev) { ev.stopPropagation(); ask(w); };
 
-    row.appendChild(main);
-    row.appendChild(edit);
+    body.appendChild(text);
+    body.appendChild(edit);
     card.appendChild(shot);
-    card.appendChild(row);
+    card.appendChild(body);
     grid.appendChild(card);
   });
-  grid.scrollTop = keep;
+  grid.parentNode.scrollTop = keep;
 }
 
 /* ---- ask before writing into a world ---- */
@@ -379,19 +589,18 @@ var pending = null;
 
 function ask(w) {
   pending = w;
-  document.getElementById("dlgShot").style.backgroundImage =
-    "url(" + (w.icon ? iconUrl(w) : "/ui/world.png") + ")";
-  document.getElementById("dlgQ").textContent =
-    (w.installed ? "Reinstall the AI into " : "Install the AI into ") + w.name + "?";
+  var shot = document.getElementById("dlgShot");
+  shot.style.backgroundImage = w.icon ? "url(" + iconUrl(w) + ")" : "none";
+  document.getElementById("dlgTitle").textContent =
+    (w.installed ? "Reinstall the AI in " : "Install the AI in ") + w.name + "?";
   document.getElementById("dlgNote").textContent = w.installed
-    ? "The AI is already here. Reinstalling refreshes it to the newest version."
-    : "This adds the AI Companion behaviour pack to this world. Nothing else changes.";
+    ? "The AI is already in this world. Reinstalling refreshes it to the newest version."
+    : "This adds the Bedrock AI behaviour pack to this world. Nothing else in the world changes.";
   document.getElementById("dlgYes").textContent = w.installed ? "Reinstall" : "Install";
   scrim.className = "scrim open";
 }
 
 function closeDlg() { scrim.className = "scrim"; pending = null; }
-
 document.getElementById("dlgNo").onclick = closeDlg;
 scrim.onclick = function (e) { if (e.target === scrim) { beep("back"); closeDlg(); } };
 document.addEventListener("keydown", function (e) {
@@ -402,24 +611,29 @@ document.getElementById("dlgYes").onclick = function () {
   var w = pending;
   if (!w) return;
   var btn = this;
+  var label = btn.textContent;
   btn.disabled = true;
+  btn.innerHTML = '<svg class="spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>Installing';
   fetch("/install?root=" + w.root + "&world=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
       say(d.message, d.ok);
       btn.disabled = false;
+      btn.textContent = label;
       closeDlg();
       loadWorlds();
     });
 };
 
 function launch(w) {
-  var text = document.getElementById("cmd").textContent;
-  if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {});
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(document.getElementById("cmd").textContent).catch(function () {});
+  }
   fetch("/launch?world=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      say(d.ok ? "Opening " + w.name + ". Command copied - press T, Ctrl+V, Enter." : d.message, d.ok);
+      say(d.ok ? "Opening " + w.name + " — command copied, press T then Ctrl+V" : d.message, d.ok);
     });
 }
 
@@ -443,11 +657,8 @@ function loadWorlds() {
   return fetch("/worlds").then(function (r) { return r.json(); }).then(function (d) {
     if (!d.found) {
       allWorlds = [];
-      grid.innerHTML = "";
-      var e = document.createElement("div");
-      e.className = "empty";
-      e.textContent = "Minecraft not found. Open it once, then press Refresh.";
-      grid.appendChild(e);
+      grid.innerHTML = '<div class="empty">' + ICON_WORLD +
+        "<p>Minecraft not found. Open it once, then press Refresh.</p></div>";
       return;
     }
     allWorlds = d.worlds;
@@ -456,55 +667,81 @@ function loadWorlds() {
 }
 
 search.oninput = draw;
-account.onchange = function () { grid.scrollTop = 0; draw(); };
-document.getElementById("rescan").onclick = function () { loadRoots().then(loadWorlds); };
+account.onchange = function () { grid.parentNode.scrollTop = 0; draw(); };
+var rescanBtn = document.getElementById("rescan");
+rescanBtn.onclick = function () {
+  if (busy) return;
+  busy = true;
+  var icon = rescanBtn.querySelector("svg");
+  icon.classList.add("spinning");
+  rescanBtn.disabled = true;
+  var started = Date.now();
+  loadRoots().then(loadWorlds).then(function () {
+    // let the spin be visible even when the scan is instant
+    var wait = Math.max(0, 550 - (Date.now() - started));
+    setTimeout(function () {
+      icon.classList.remove("spinning");
+      rescanBtn.disabled = false;
+      busy = false;
+      say(allWorlds.length + " worlds found", true);
+    }, wait);
+  });
+};
 
 document.getElementById("copy").onclick = function () {
   var text = document.getElementById("cmd").textContent;
   var btn = this;
-  function ok() {
-    btn.textContent = "Copied";
-    setTimeout(function () { btn.textContent = "Copy command"; }, 1500);
-  }
+  function done() { say("Command copied", true); }
   function fallback() {
     var t = document.createElement("textarea");
     t.value = text;
     document.body.appendChild(t);
     t.select();
-    try { document.execCommand("copy"); ok(); } catch (e) {}
+    try { document.execCommand("copy"); done(); } catch (e) {}
     document.body.removeChild(t);
   }
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, fallback);
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, fallback);
   else fallback();
 };
 
 function render(s) {
   document.getElementById("cmd").textContent = "/connect localhost:" + s.port;
-  document.getElementById("engine").textContent = s.provider ? s.provider + " · " + s.model : "starting";
+  document.getElementById("engine").textContent = s.provider ? s.provider + " · " + s.model : "starting…";
 
-  var led = document.getElementById("led");
+  var dot = document.getElementById("dot");
   var status = document.getElementById("status");
+  var meta = document.getElementById("statusMeta");
+
   if (s.apiKeyMissing) {
-    led.className = "led bad";
+    dot.className = "dot bad";
     status.textContent = "No API key";
+    meta.textContent = "Add your key to config.json, then start the app again.";
   } else if (s.minecraft) {
-    led.className = "led ok";
-    status.textContent = s.player ? "Connected — " + s.player : "Connected";
+    dot.className = "dot ok";
+    status.textContent = "Connected";
+    meta.textContent = s.player ? "Playing as " + s.player : "Type ai hello in chat.";
   } else {
-    led.className = "led wait";
-    status.textContent = "Waiting for Minecraft";
+    dot.className = "dot wait";
+    status.textContent = "Waiting";
+    meta.textContent = "Open a world, then paste the connect command in chat.";
   }
 
   var facts = document.getElementById("facts");
+  var long = document.getElementById("factsLong");
   if (!s.facts) {
-    facts.className = "note";
-    facts.textContent = "Nothing yet. Ask the AI something once you are connected.";
+    facts.hidden = true;
+    long.textContent = "Nothing yet. Ask the AI something once you are connected.";
   } else if (s.facts.ok) {
-    facts.className = "note good";
-    facts.textContent = s.facts.count + " of " + s.facts.total + " facts arriving from the world.";
+    facts.hidden = false;
+    facts.className = "status__facts ok";
+    facts.textContent = s.facts.count + " of " + s.facts.total + " world facts";
+    long.textContent = s.facts.count + " of " + s.facts.total +
+      " facts are arriving from the world, so the AI can see your health, inventory, biome and more.";
   } else {
-    facts.className = "note bad";
-    facts.textContent = "No live data. Install the AI into the world you are playing.";
+    facts.hidden = false;
+    facts.className = "status__facts bad";
+    facts.textContent = "No world data";
+    long.textContent = "No live data is arriving. Install the AI into the world you are playing.";
   }
 
   var atBottom = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 24;
@@ -515,10 +752,12 @@ function render(s) {
 var es = new EventSource("/events");
 es.onmessage = function (e) { render(JSON.parse(e.data)); };
 es.onerror = function () {
-  document.getElementById("led").className = "led bad";
-  document.getElementById("status").textContent = "Bridge stopped";
+  document.getElementById("dot").className = "dot bad";
+  document.getElementById("status").textContent = "Stopped";
+  document.getElementById("statusMeta").textContent = "Close this window and start the app again.";
 };
 
+skeletons(12);
 loadRoots().then(loadWorlds);
 </script>
 </body>
