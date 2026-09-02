@@ -1,6 +1,6 @@
 # Render picks this up on its own once the repo is connected.
-# The provider and key live in config.json, which ships with this repo.
-# Do NOT add PORT, AI_TLS_CERT or AI_TLS_KEY here - Render supplies the port and
+# config.json is not in the repo, so the key comes from the dashboard.
+# Do NOT add PORT, AI_TLS_CERT or AI_TLS_KEY - Render supplies the port and
 # terminates TLS itself, and setting them stops the app from booting.
 services:
   - type: web
@@ -10,3 +10,10 @@ services:
     buildCommand: npm ci --omit=dev
     startCommand: node src/server.js
     healthCheckPath: /
+    envVars:
+      - key: AI_PROVIDER
+        value: groq
+      - key: AI_MODEL
+        value: openai/gpt-oss-120b
+      - key: AI_API_KEY
+        sync: false      # paste it in the Render dashboard
