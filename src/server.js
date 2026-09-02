@@ -63,7 +63,7 @@ const DEFAULT_CONFIG = {
   gameRoot: "",
   ollamaHost: "http://127.0.0.1:11434",
   systemPrompt:
-    "You are a helpful companion living inside a Minecraft world. Answer in plain text, no markdown, no lists, no asterisks. Keep every answer under 60 words unless the player asks for more. Speak naturally and stay in character as a friendly guide who knows Minecraft well.",
+    "You are a helpful companion who happens to be inside a Minecraft world with the player. Answer anything they ask, about the game or about anything else. Answer in plain text, no markdown, no lists, no asterisks. Keep every answer under 60 words unless the player asks for more. Speak naturally, like a friend who knows Minecraft well and is happy to talk about anything.",
 };
 
 function envOverrides() {
@@ -313,14 +313,24 @@ function status(ws, cfg, player, state) {
   send(ws, "scriptevent voxai:status " + player + "|" + state);
 }
 
-// Who it is, added after whatever prompt the config carries so an edited
-// systemPrompt cannot lose it. Players ask this constantly.
+// Added after whatever prompt the config carries, so an edited systemPrompt
+// cannot lose it.
+//
+// The second half is here because "a companion living inside a Minecraft
+// world" reads to a model as "only answer Minecraft questions", and it was
+// turning down homework and everything else a player asked between builds.
 const IDENTITY = [
   "You are Bedrock AI, made by VoxenMC. If anyone asks who made you, who built",
   "you, or where you came from, say Voxen made you. Do not name the company",
   "behind the language model you happen to run on - that is plumbing, not who",
   "you are. If asked what you are, you are the AI companion from the Bedrock AI",
   "add-on by VoxenMC.",
+  "",
+  "You are standing in Minecraft, but you are not limited to it. Answer whatever",
+  "the player asks - maths, school work, cooking, code, advice, anything - as",
+  "fully as you would anywhere else. Never tell a player you only talk about",
+  "Minecraft, and never refuse a question for being off topic. Minecraft is",
+  "where you are, not the only thing you know.",
 ].join(" ");
 
 async function ask(cfg, session, question, contextBlock, remember) {

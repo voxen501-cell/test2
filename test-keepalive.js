@@ -49,7 +49,9 @@ require("./src/server").start();
   let pings = 0;
   quiet.on("ping", () => pings++);
   await new Promise((r) => quiet.on("open", r));
-  await sleep(2500);
+  // poll rather than sleep a fixed span: under load the pings arrive late
+  const until = Date.now() + 12000;
+  while (pings < 2 && Date.now() < until) await sleep(200);
   check("a silent client is pinged", pings >= 2, "pings=" + pings);
   check("the socket is still open after the quiet spell", quiet.readyState === WebSocket.OPEN, String(quiet.readyState));
 

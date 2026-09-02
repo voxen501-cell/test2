@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var status: TextView
     private lateinit var start: Button
-    private lateinit var chat: TextView
     private var running = false
 
     // service id, label, and where its key comes from
@@ -50,7 +49,6 @@ class MainActivity : AppCompatActivity() {
     )
 
     private val ticker = Handler(Looper.getMainLooper())
-    private var polling: Runnable? = null
 
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
@@ -58,7 +56,6 @@ class MainActivity : AppCompatActivity() {
 
         status = findViewById(R.id.status)
         start = findViewById(R.id.start)
-        chat = findViewById(R.id.chat)
         askForNotifications()
 
         findViewById<Button>(R.id.saveKey).setOnClickListener {
@@ -99,6 +96,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.install).setOnClickListener { installAddon() }
+
+        findViewById<Button>(R.id.openChat).setOnClickListener { showConversation() }
 
         findViewById<Button>(R.id.kofi).setOnClickListener {
             try {
@@ -153,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         val hint = findViewById<TextView>(R.id.keyHint)
         val key = findViewById<EditText>(R.id.key)
         val needsKey = service.keyUrl.isNotEmpty()
-        hint.text = if (needsKey) "Get a key at " + service.keyUrl
+        hint.text = if (needsKey) "Key from " + service.keyUrl
                     else "Runs on this device. No key needed."
         key.visibility = if (needsKey) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.reveal).visibility =
@@ -165,32 +164,59 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
-        startPolling()
     }
 
-    override fun onPause() {
-        super.onPause()
-        // nothing to read while the screen is not in front
-        polling?.let { ticker.removeCallbacks(it) }
-        polling = null
+    private fun startBridge() {
+        val intent = Intent(this, BridgeService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+        else startService(intent)
+        status.text = "Starting the AI..."
+        start.isEnabled = false
+        // node needs a moment to come up before the check will see it
+        status.postDelayed({ refresh() }, 2500)
     }
 
-    // The conversation is what the player actually wants to see, so it is
-    // pulled every couple of seconds rather than only when something else
-    // happens to refresh the screen.
-    private fun startPolling() {
-        if (polling != null) return
-        val tick = object : Runnable {
+    // The bridge runs in its own process, so ending it leaves this screen up.
+    private fun stopBridge() {
+        startService(Intent(this, BridgeService::class.java).setAction(BridgeService.ACTION_STOP))
+        status.text = "Stopping..."
+        start.isEnabled = false
+        status.postDelayed({ refresh() }, 1200)
+    }
+
+    // Kept out of the main screen: it grows without limit, and a player who
+    // wants to read it back can ask for it.
+    private fun showConversation() {
+        val view = layoutInflater.inflate(R.layout.dialog_chat, null)
+        val text = view.findViewById<TextView>(R.id.chatText)
+        val dialog = android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        dialog.setContentView(view)
+
+        val refresh = object : Runnable {
             override fun run() {
-                loadChat()
+                fetchChat { lines ->
+                    if (!lines.isNullOrBlank()) {
+                        text.text = lines
+                        view.findViewById<ScrollView>(R.id.chatScroll).post {
+                            view.findViewById<ScrollView>(R.id.chatScroll)
+                                .fullScroll(View.FOCUS_DOWN)
+                        }
+                    } else {
+                        text.text = if (running) "Nothing said yet."
+                                    else "Start the AI first, then talk to it in Minecraft."
+                    }
+                }
                 ticker.postDelayed(this, 2000)
             }
         }
-        polling = tick
-        ticker.post(tick)
+
+        view.findViewById<Button>(R.id.chatClose).setOnClickListener { dialog.dismiss() }
+        dialog.setOnDismissListener { ticker.removeCallbacks(refresh) }
+        dialog.show()
+        ticker.post(refresh)
     }
 
-    private fun loadChat() {
+    private fun fetchChat(then: (String?) -> Unit) {
         Thread {
             val text = try {
                 val c = URL("http://127.0.0.1:${NodeEngine.PORT}/chat").openConnection()
@@ -210,38 +236,8 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 null
             }
-            runOnUiThread {
-                val has = !text.isNullOrBlank()
-                chat.visibility = if (has) View.VISIBLE else View.GONE
-                findViewById<View>(R.id.chatHead).visibility =
-                    if (has) View.VISIBLE else View.GONE
-                if (has && chat.text.toString() != text) {
-                    chat.text = text
-                    // a new line should be the one you can see
-                    findViewById<ScrollView>(R.id.setup).post {
-                        findViewById<ScrollView>(R.id.setup).fullScroll(View.FOCUS_DOWN)
-                    }
-                }
-            }
+            runOnUiThread { then(text) }
         }.start()
-    }
-
-    private fun startBridge() {
-        val intent = Intent(this, BridgeService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
-        else startService(intent)
-        status.text = "Starting the AI..."
-        start.isEnabled = false
-        // node needs a moment to come up before the check will see it
-        status.postDelayed({ refresh() }, 2500)
-    }
-
-    // The bridge runs in its own process, so ending it leaves this screen up.
-    private fun stopBridge() {
-        startService(Intent(this, BridgeService::class.java).setAction(BridgeService.ACTION_STOP))
-        status.text = "Stopping..."
-        start.isEnabled = false
-        status.postDelayed({ refresh() }, 1200)
     }
 
     // Minecraft imports a .mcpack through the normal open-with flow; the app

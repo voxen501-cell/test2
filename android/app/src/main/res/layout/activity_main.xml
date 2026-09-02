@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The desktop app's shape, on a phone: a header slab across the top, then
-  numbered steps. Every button is a slab with a solid side under it, and every
-  field is a well cut into the surface.
+  The desktop app's shape on a phone: a header slab, then the steps. Buttons
+  are slabs with a solid side under them, fields are wells cut into the surface.
+
+  Wording is kept to what a first-time player has to know. Anything longer -
+  the conversation - sits behind a button rather than stretching the screen.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -11,7 +13,6 @@
     android:orientation="vertical"
     android:fitsSystemWindows="true">
 
-    <!-- header slab -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,15 +45,16 @@
 
             <TextView
                 android:id="@+id/status"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:text="Add your API key"
                 android:textColor="@color/ink3"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- the header's own thickness -->
     <View
         android:layout_width="match_parent"
         android:layout_height="3dp"
@@ -62,7 +64,8 @@
         android:id="@+id/setup"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="18dp">
+        android:padding="18dp"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -71,11 +74,8 @@
 
             <TextView
                 style="@style/StepHead"
+                android:layout_marginTop="0dp"
                 android:text="1 · Which AI" />
-
-            <TextView
-                style="@style/StepNote"
-                android:text="Pick the service, then paste a key from that same service. A key only works with the one that issued it." />
 
             <Spinner
                 android:id="@+id/provider"
@@ -89,13 +89,14 @@
             <TextView
                 android:id="@+id/keyHint"
                 style="@style/StepNote"
-                android:layout_marginTop="14dp"
-                android:text="Get a free key at console.groq.com/keys" />
+                android:layout_marginTop="12dp"
+                android:text="Key from console.groq.com/keys" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
+                android:baselineAligned="false"
                 android:orientation="horizontal">
 
                 <EditText
@@ -104,9 +105,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:background="@drawable/well"
-                    android:hint="gsk_..."
+                    android:hint="Paste key"
                     android:importantForAutofill="no"
                     android:inputType="textPassword"
+                    android:maxLines="1"
                     android:padding="14dp"
                     android:textColor="@color/ink"
                     android:textColorHint="@color/ink4"
@@ -118,8 +120,8 @@
                     android:layout_width="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_marginTop="0dp"
-                    android:minWidth="76dp"
-                    android:paddingHorizontal="12dp"
+                    android:minWidth="72dp"
+                    android:paddingHorizontal="10dp"
                     android:text="Show"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -140,11 +142,7 @@
 
             <TextView
                 style="@style/StepHead"
-                android:text="3 · Add it to Minecraft" />
-
-            <TextView
-                style="@style/StepNote"
-                android:text="Opens the add-on in Minecraft. Turn it on in the world you play." />
+                android:text="3 · Add to Minecraft" />
 
             <Button
                 android:id="@+id/install"
@@ -154,6 +152,10 @@
             <TextView
                 style="@style/StepHead"
                 android:text="4 · In Minecraft chat" />
+
+            <TextView
+                style="@style/StepNote"
+                android:text="No cheats? Type  connect ai  in chat instead." />
 
             <TextView
                 android:id="@+id/command"
@@ -173,37 +175,11 @@
                 style="@style/SlabGrey"
                 android:text="Copy command" />
 
-            <TextView
-                android:id="@+id/chatHead"
-                style="@style/StepHead"
-                android:text="Conversation"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/chat"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/well"
-                android:lineSpacingExtra="3dp"
-                android:padding="14dp"
-                android:textColor="@color/ink2"
-                android:textIsSelectable="true"
-                android:textSize="13sp"
-                android:visibility="gone" />
-
-            <TextView
-                style="@style/StepHead"
-                android:text="Made by VoxenMC2" />
-
-            <TextView
-                style="@style/StepNote"
-                android:text="Free Minecraft Bedrock add-ons, shaders and texture packs, plus tools to build your own. More at nebuxmc.com" />
-
-            <TextView
-                style="@style/StepNote"
-                android:layout_marginTop="12dp"
-                android:text="This is free, and stays free. If it earned a coffee, that keeps it going." />
+            <Button
+                android:id="@+id/openChat"
+                style="@style/SlabGrey"
+                android:layout_marginTop="26dp"
+                android:text="Conversation" />
 
             <Button
                 android:id="@+id/kofi"
@@ -211,16 +187,11 @@
                 android:text="Support on Ko-fi" />
 
             <TextView
-                style="@style/StepNote"
-                android:layout_marginTop="24dp"
-                android:text="Built with Node.js, ws and nodejs-mobile. The game, and the websocket this all rests on, are Mojang's." />
-
-            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="20dp"
                 android:layout_marginBottom="24dp"
-                android:text="Leave this app running while you play. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft."
+                android:text="By VoxenMC2\nNot an official Minecraft product."
                 android:textColor="@color/ink4"
                 android:textSize="11sp" />
         </LinearLayout>

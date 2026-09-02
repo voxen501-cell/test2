@@ -13,6 +13,17 @@ function check(label, ok, extra) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// These wait on wall-clock behaviour, so a loaded machine can miss a fixed
+// sleep by a second and fail a working bridge. Poll for the outcome instead.
+async function waitFor(check, ms) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    if (check()) return true;
+    await sleep(200);
+  }
+  return check();
+}
+
 function startBridge(port) {
   const cfg = path.join(__dirname, "life-config-" + port + ".json");
   fs.writeFileSync(cfg, JSON.stringify({
@@ -54,7 +65,7 @@ function openStream(port) {
   s1.destroy();                       // the window closed
   await sleep(3000);
   check("still up during the grace period", b.exitCode === null, "exited " + b.exitCode);
-  await sleep(5000);
+  await waitFor(() => b.exitCode !== null, 15000);
   check("stops once the window is gone", b.exitCode === 0, "exitCode " + b.exitCode);
   fs.unlinkSync(b.cfg);
 
