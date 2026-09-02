@@ -187,9 +187,15 @@ select.well option{background:var(--slab);color:var(--ink)}
   box-shadow:
     inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
     0 5px 0 var(--edge), 0 9px 15px rgba(0,0,0,.5);
-  transition:background .12s;
+  transform:translateY(0);
+  transition:background .12s, transform .07s, box-shadow .07s;
 }
 .tile:hover{background:linear-gradient(var(--slab-3),var(--slab-2))}
+/* the whole card is the control, so the whole card is what presses */
+.tile:active{
+  transform:translateY(5px);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
+}
 
 /* the world icon lies flat - nothing cast over it */
 .tile__shot{
@@ -229,14 +235,15 @@ select.well option{background:var(--slab);color:var(--ink)}
 .plate:hover{background:linear-gradient(#3c414a,var(--slab-3))}
 .plate:active{--lip:0px;transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
 
-/* the whole card opens the world, so the name plate is a label on it rather
-   than a control of its own */
+/* the name is a label cut into the card, not a button - the card carries the
+   click, and a plate here would look like the thing you pressed */
 .tile{cursor:pointer}
-.tile:hover .tile__open{background:linear-gradient(#3c414a,var(--slab-3))}
-.tile:active .tile__open{--lip:0px;transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
-.tile__open{pointer-events:none;
-  flex:1;min-width:0;padding:0 10px;text-align:left;color:var(--ink);
+.tile__open{
+  pointer-events:none;
+  flex:1;min-width:0;padding:0 11px;text-align:left;color:var(--ink);
   display:flex;flex-direction:column;justify-content:center;
+  border-radius:var(--r-sm);background:var(--deep);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.55), inset 0 -1px 0 var(--lit);
 }
 .tile__name{
   font-size:13px;font-weight:650;line-height:1.35;
@@ -260,16 +267,21 @@ select.well option{background:var(--slab);color:var(--ink)}
 .tile__get.has:hover{background:linear-gradient(#7ce881,var(--green-lit))}
 
 /* ══ panels ════════════════════════════════════════════ */
+/* the reading column: prose sits in a measured width and stays centred, rather
+   than clinging to the left of a wide window */
+.doc{max-width:720px;margin:0 auto}
+.doc > .panel:last-child{margin-bottom:0}
+
 .panel{
-  border-radius:var(--r);padding:20px 22px;margin-bottom:18px;max-width:620px;
+  border-radius:var(--r);padding:20px 22px;margin-bottom:16px;
   background:linear-gradient(var(--slab-2),var(--slab));
   box-shadow:
     inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
     0 5px 0 var(--edge), 0 9px 16px rgba(0,0,0,.45);
 }
-.panel h2{font-size:14.5px;font-weight:700;margin:0 0 4px}
+.panel h2{font-size:14.5px;font-weight:700;margin:0 0 5px;letter-spacing:-.01em}
 .panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 16px}
-.panel .body{font-size:13px;color:var(--ink-2);margin:0 0 12px;line-height:1.65;max-width:62ch}
+.panel .body{font-size:13px;color:var(--ink-2);margin:0 0 13px;line-height:1.7}
 .panel .body:last-child{margin-bottom:0}
 .panel .body b{color:var(--ink);font-weight:650}
 code.inline{
@@ -431,8 +443,9 @@ code.inline{
     </div>
 
     <div class="view" id="view-connect">
-      <div class="head"><h1>Connect</h1></div>
+      <div class="head"><div class="doc" style="width:100%"><h1>Connect</h1></div></div>
       <div class="scroll">
+        <div class="doc">
         <div class="panel">
           <h2>Run this once in Minecraft chat</h2>
           <p class="sub">Opening a world from the Worlds tab copies it for you.</p>
@@ -454,14 +467,16 @@ code.inline{
         <div class="panel">
           <h2>Live world data</h2>
           <p class="sub">What the AI can actually see while you play.</p>
-          <div id="factsLong" style="font-size:13px;color:var(--ink-2)">Nothing yet.</div>
+          <div id="factsLong" class="body">Nothing yet.</div>
+        </div>
         </div>
       </div>
     </div>
 
     <div class="view" id="view-about">
-      <div class="head"><h1>About</h1></div>
+      <div class="head"><div class="doc" style="width:100%"><h1>About</h1></div></div>
       <div class="scroll">
+        <div class="doc">
 
         <div class="panel">
           <h2>What this is</h2>
@@ -520,6 +535,7 @@ code.inline{
             by or associated with Mojang or Microsoft.</p>
         </div>
 
+        </div>
       </div>
     </div>
 
@@ -662,7 +678,7 @@ function draw() {
     row.className = "tile__row";
 
     var open = document.createElement("div");
-    open.className = "plate tile__open";
+    open.className = "tile__open";
     open.innerHTML = '<div class="tile__name"></div><div class="tile__date"></div>';
     open.firstChild.textContent = w.name;
     open.lastChild.textContent = shortDate(w.played);
