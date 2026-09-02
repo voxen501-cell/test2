@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxenMC - AI Companion</title>
+<style>
+/* Monocraft is served from inside the app, nothing is fetched at runtime. */
+@font-face{
+  font-family:"Monocraft";
+  src:url("/font/monocraft.ttf") format("truetype");
+  font-weight:400 600;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Monocraft";
+  src:url("/font/monocraft-bold.ttf") format("truetype");
+  font-weight:700 900;
+  font-display:swap;
+}
+
+:root{
+  --bg:#1E1F20;
+  --panel:#313233;
+  --panel-2:#3A3B3C;
+  --stroke:rgba(0,0,0,.6);
+  --drop:0 4px 0 rgba(0,0,0,.32);
+  --line:#4F5051;
+
+  --ink:#FFFFFF;
+  --ink-2:#C8C9CA;
+  --ink-3:#8E8F90;
+
+  --green:#51A332;      --green-hi:#5CB63A;   --green-lite:#7FD34A;
+  --green-lo:#135D0B;   --green-press:#3E8526;
+  --green-mid:#6BC24A;  --green-corner:#C3E878;
+
+  --btn3:#4A4B4C;       --btn3-hi:#565758;    --btn3-lite:#6E6F70;
+  --btn3-lo:#232425;    --btn3-press:#3A3B3C;
+  --btn3-mid:#646566;   --btn3-corner:#8A8B8C;
+
+  --red:#BE2418;        --gold:#C9962B;       --gold-ink:#E4C77E;
+
+  --in-bg:#232425;      --in-top:#141516;     --in-bot:#3F4041;
+  --focus:#FFFFFF;
+
+  --pixel:"Monocraft","Courier New",monospace;
+  --sans:"Noto Sans","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.55;
+  padding:22px 22px 28px;
+}
+.shell{max-width:640px;margin:0 auto}
+
+/* ---- brand, lifted from the site header ---- */
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.brand__mark{
+  width:30px;height:30px;display:grid;place-items:center;
+  background:var(--green);border:3px solid #000;padding-bottom:4px;
+  box-shadow:
+    inset 0 -5px 0 0 var(--green-lo),
+    inset 0 -7px 0 0 var(--green-mid),
+    inset 0  2px 0 0 var(--green-lite),
+    inset  2px 0 0 0 var(--green-lite),
+    inset -2px 0 0 0 var(--green-lite);
+}
+.brand__mark svg{width:14px;height:14px;fill:#fff;margin-bottom:-3px}
+.brand__name{font-family:var(--pixel);font-weight:700;font-size:19px;letter-spacing:.02em}
+.brand__name span{color:var(--green-mid)}
+.tagline{color:var(--ink-3);font-size:12px;margin:0 0 18px;font-family:var(--pixel)}
+
+/* ---- panels: thin stroke plus one hard drop, like the site ---- */
+.panel{
+  background:var(--panel);
+  border:2px solid var(--stroke);
+  box-shadow:var(--drop);
+  margin-bottom:16px;
+  padding:18px 20px 20px;
+}
+.panel__head{
+  font-family:var(--pixel);
+  font-weight:700;
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  color:var(--ink-2);
+  margin-bottom:13px;
+}
+.panel__head .step{color:var(--green-mid)}
+
+/* ---- status ---- */
+.state{display:flex;align-items:center;gap:11px}
+.led{width:12px;height:12px;flex:none;background:var(--ink-3);border:2px solid #000}
+.led.ok{background:var(--green-lite);box-shadow:0 0 10px rgba(127,211,74,.55)}
+.led.wait{background:var(--gold)}
+.led.bad{background:var(--red)}
+.state__text{font-family:var(--pixel);font-weight:700;font-size:15px}
+.hint{color:var(--ink-3);font-size:12.5px;margin-top:7px}
+.facts{font-size:12.5px;margin-top:6px;color:var(--ink-3)}
+.facts.ok{color:var(--green-mid)}
+.facts.bad{color:var(--gold-ink)}
+
+/* ---- Ore UI button plate ---- */
+.btn{
+  --e:3px; --lip:6px;
+  --b:var(--green); --b-hi:var(--green-hi); --b-lite:var(--green-lite);
+  --b-mid:var(--green-mid); --b-lo:var(--green-lo); --b-press:var(--green-press);
+  --b-corner:var(--green-corner); --b-ink:#FFFFFF;
+  --b-shadow:2px 2px 0 rgba(0,0,0,.45);
+
+  position:relative;
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:11px 20px 16px;
+  margin-bottom:4px;
+
+  font-family:var(--pixel);font-size:13px;font-weight:700;line-height:1;
+  letter-spacing:.01em;text-transform:uppercase;text-align:center;
+  color:var(--b-ink);text-shadow:var(--b-shadow);
+
+  background:var(--b);
+  border:4px solid #000;
+  outline:3px solid transparent;
+  box-shadow:
+    inset 0 calc(-1 * var(--lip))              0 0 var(--b-lo),
+    inset 0 calc(-1 * (var(--lip) + var(--e))) 0 0 var(--b-mid),
+    inset 0 var(--e)                           0 0 var(--b-lite),
+    inset var(--e) 0                           0 0 var(--b-lite),
+    inset calc(-1 * var(--e)) 0                0 0 var(--b-lite);
+
+  cursor:pointer;user-select:none;
+  transition:background .1s linear, outline-color .1s linear, transform .06s linear;
+}
+.btn::before{
+  content:"";position:absolute;left:0;right:0;top:0;bottom:var(--lip);
+  background-image:
+    linear-gradient(var(--b-corner),var(--b-corner)),
+    linear-gradient(var(--b-corner),var(--b-corner)),
+    linear-gradient(var(--b-corner),var(--b-corner)),
+    linear-gradient(var(--b-corner),var(--b-corner));
+  background-size:var(--e) var(--e);
+  background-position:0 0, 100% 0, 0 100%, 100% 100%;
+  background-repeat:no-repeat;
+  pointer-events:none;
+}
+.btn:hover{background:var(--b-hi);outline-color:var(--focus)}
+.btn:active{--lip:3px;background:var(--b-press);transform:translateY(var(--e))}
+.btn[disabled]{
+  --b:#C9CBD1; --b-hi:#C9CBD1; --b-lite:#C9CBD1; --b-mid:#C9CBD1;
+  --b-lo:#C9CBD1; --b-corner:#C9CBD1; --b-ink:#6E6F70; --b-shadow:none;
+  border-color:#555;cursor:not-allowed;pointer-events:none;
+}
+.btn--dark{
+  --b:var(--btn3); --b-hi:var(--btn3-hi); --b-lite:var(--btn3-lite);
+  --b-mid:var(--btn3-mid); --b-lo:var(--btn3-lo); --b-press:var(--btn3-press);
+  --b-corner:var(--btn3-corner); --b-ink:var(--ink); --b-shadow:none;
+}
+
+/* ---- sunken controls: the hole, not the plate ---- */
+.pselect,.sunken{
+  background:var(--in-bg);
+  border:3px solid #000;
+  box-shadow:inset 0 3px 0 0 var(--in-top), inset 0 -3px 0 0 var(--in-bot);
+  color:var(--ink);
+  outline:3px solid transparent;
+  transition:outline-color .1s linear;
+}
+.pselect{
+  display:block;width:100%;margin-bottom:3px;
+  padding:12px 34px 12px 13px;
+  font-family:var(--sans);font-size:14px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background-image:
+    linear-gradient(var(--ink),var(--ink)),
+    linear-gradient(var(--ink),var(--ink)),
+    linear-gradient(var(--ink),var(--ink));
+  background-size:4px 4px;
+  background-position:
+    calc(100% - 20px) calc(50% - 2px),
+    calc(100% - 16px) calc(50% + 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-repeat:no-repeat;
+}
+.pselect option{background:var(--panel);color:var(--ink)}
+.pselect:focus{outline-color:var(--focus)}
+
+.cmd{
+  display:block;padding:13px;margin-bottom:3px;
+  font-family:var(--pixel);font-size:15px;font-weight:700;
+  color:var(--green-lite);user-select:all;word-break:break-all;
+}
+
+.row{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.msg{font-size:12.5px;margin-top:10px;color:var(--ink-3);min-height:18px}
+.msg.good{color:var(--green-mid)}
+.msg.bad{color:var(--gold-ink)}
+
+.steps{margin:14px 0 0;padding-left:20px;color:var(--ink-3);font-size:12.5px}
+.steps li{margin:5px 0}
+.steps b{color:var(--ink-2);font-weight:600}
+
+#log{
+  height:150px;overflow:auto;padding:11px 13px;
+  font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;line-height:1.6;
+  color:var(--ink-3);white-space:pre-wrap;
+}
+.foot{
+  color:var(--ink-3);font-size:11px;text-align:center;
+  margin-top:20px;font-family:var(--pixel);
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="brand">
+    <span class="brand__mark">
+      <svg viewBox="0 0 8 8" role="img" aria-label="VoxenMC">
+        <rect x="0" y="0" width="2" height="2"/><rect x="6" y="0" width="2" height="2"/>
+        <rect x="1" y="2" width="2" height="2"/><rect x="5" y="2" width="2" height="2"/>
+        <rect x="2" y="4" width="4" height="2"/><rect x="3" y="6" width="2" height="2"/>
+      </svg>
+    </span>
+    <span class="brand__name">Voxen<span>MC</span></span>
+  </div>
+  <p class="tagline" id="engine">AI Companion &middot; starting&hellip;</p>
+
+  <div class="panel">
+    <div class="state">
+      <span class="led" id="led"></span>
+      <span class="state__text" id="status">Starting</span>
+    </div>
+    <div class="hint" id="hint">Setting things up&hellip;</div>
+    <div class="facts" id="facts"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head"><span class="step">Step 1</span> &nbsp;Install into Minecraft</div>
+    <select class="pselect" id="world"><option value="">Loading worlds&hellip;</option></select>
+    <div class="row" style="margin-top:11px">
+      <button class="btn" id="install">Install AI</button>
+      <button class="btn btn--dark" id="rescan">Rescan</button>
+    </div>
+    <div class="msg" id="installMsg"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head"><span class="step">Step 2</span> &nbsp;Connect from Minecraft</div>
+    <code class="cmd sunken" id="cmd">/connect localhost:8080</code>
+    <div class="row" style="margin-top:11px">
+      <button class="btn" id="copy">Copy command</button>
+      <span class="hint" style="margin:0">Paste it into Minecraft chat</span>
+    </div>
+    <ol class="steps">
+      <li>Open your world with <b>cheats on</b></li>
+      <li>Press <b>T</b> for chat and paste the command</li>
+      <li>Type <b>ai hello</b> to talk</li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head">Activity</div>
+    <div id="log" class="sunken">waiting&hellip;</div>
+  </div>
+
+  <p class="foot">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
+</div>
+
+<script>
+var logBox = document.getElementById("log");
+var worldSel = document.getElementById("world");
+var installMsg = document.getElementById("installMsg");
+
+function loadWorlds() {
+  fetch("/worlds").then(function (r) { return r.json(); }).then(function (d) {
+    worldSel.innerHTML = "";
+    if (!d.found) {
+      worldSel.appendChild(new Option("Minecraft not found", ""));
+      installMsg.className = "msg bad";
+      installMsg.textContent = "Open Minecraft once, then press Rescan.";
+      return;
+    }
+    if (!d.worlds.length) {
+      worldSel.appendChild(new Option("No worlds yet - make one in Minecraft", ""));
+      return;
+    }
+    d.worlds.forEach(function (w) {
+      worldSel.appendChild(new Option(w.name + (w.installed ? "   (installed)" : ""), w.id));
+    });
+  });
+}
+
+document.getElementById("rescan").onclick = loadWorlds;
+
+document.getElementById("install").onclick = function () {
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = "Installing";
+  fetch("/install?world=" + encodeURIComponent(worldSel.value))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      installMsg.className = "msg " + (d.ok ? "good" : "bad");
+      installMsg.textContent = d.message;
+      btn.disabled = false;
+      btn.textContent = "Install AI";
+      loadWorlds();
+    });
+};
+
+document.getElementById("copy").onclick = function () {
+  var text = document.getElementById("cmd").textContent;
+  var btn = this;
+  function ok() {
+    btn.textContent = "Copied";
+    setTimeout(function () { btn.textContent = "Copy command"; }, 1600);
+  }
+  function fallback() {
+    var t = document.createElement("textarea");
+    t.value = text;
+    document.body.appendChild(t);
+    t.select();
+    try { document.execCommand("copy"); ok(); } catch (e) {}
+    document.body.removeChild(t);
+  }
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, fallback);
+  else fallback();
+};
+
+function render(s) {
+  document.getElementById("cmd").textContent = "/connect localhost:" + s.port;
+  document.getElementById("engine").textContent =
+    s.provider ? "AI Companion · " + s.provider + " · " + s.model : "AI Companion · starting…";
+
+  var led = document.getElementById("led");
+  var status = document.getElementById("status");
+  var hint = document.getElementById("hint");
+
+  if (s.apiKeyMissing) {
+    led.className = "led bad";
+    status.textContent = "No API key";
+    hint.textContent = "Open config.json next to this app, paste your key in, then start it again.";
+  } else if (s.minecraft) {
+    led.className = "led ok";
+    status.textContent = s.player ? "Connected — " + s.player : "Connected";
+    hint.textContent = "Type  ai hello  in Minecraft chat.";
+  } else {
+    led.className = "led wait";
+    status.textContent = "Waiting for Minecraft";
+    hint.textContent = "The bridge is running. Paste the command from step 2 into chat.";
+  }
+
+  var facts = document.getElementById("facts");
+  if (!s.facts) {
+    facts.textContent = "";
+    facts.className = "facts";
+  } else if (s.facts.ok) {
+    facts.textContent = "Live world data: " + s.facts.count + " of " + s.facts.total + " facts";
+    facts.className = "facts ok";
+  } else {
+    facts.textContent = "Live world data missing - install the pack into this world";
+    facts.className = "facts bad";
+  }
+
+  var atBottom = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 24;
+  logBox.textContent = s.log.length ? s.log.join("\n") : "waiting…";
+  if (atBottom) logBox.scrollTop = logBox.scrollHeight;
+}
+
+var es = new EventSource("/events");
+es.onmessage = function (e) { render(JSON.parse(e.data)); };
+es.onerror = function () {
+  document.getElementById("led").className = "led bad";
+  document.getElementById("status").textContent = "Bridge stopped";
+  document.getElementById("hint").textContent = "Close this window and start the app again.";
+};
+
+loadWorlds();
+</script>
+</body>
+</html>

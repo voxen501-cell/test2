@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test.js && node test-context.js && node test-channel.js && node test-keepalive.js && node test-actions.js && node test-sequence.js && node test-encryption.js",
+    "test": "node run-tests.js",
     "build": "pkg . --output dist/AI-Companion-Bridge.exe"
   },
   "keywords": [],
@@ -30,6 +30,10 @@
     "targets": [
       "node22-win-x64"
     ],
-    "outputPath": "dist"
+    "outputPath": "dist",
+    "assets": [
+      "src/app.html",
+      "src/fonts/*.ttf"
+    ]
   }
 }

@@ -6,6 +6,7 @@ const { WebSocketServer } = require("ws");
 const { PROVIDERS } = require("./providers");
 const { createContext, PASSIVE_EVENTS } = require("./context");
 const { extract, promptSection, setRawCommands } = require("./actions");
+const { createUi, openWindow } = require("./ui");
 const {
   createHandshake,
   extractClientKey,
@@ -114,6 +115,8 @@ function loadConfig() {
   return cfg;
 }
 
+let ui = null;
+
 let channelWarned = false;
 let channelAnnounced = false;
 
@@ -123,6 +126,7 @@ let channelAnnounced = false;
 function reportChannel(ws, cfg, ctx) {
   if (!ctx.channelReport) return;
   const report = ctx.channelReport();
+  ui.set({ facts: { ok: report.ok, count: report.facts, total: report.total } });
   if (report.ok) {
     if (!channelAnnounced) {
       channelAnnounced = true;
@@ -192,6 +196,7 @@ function hostingPlatform() {
 
 function log(...args) {
   const t = new Date().toTimeString().slice(0, 8);
+  if (ui) ui.note("[" + t + "] " + args.join(" "));
   console.log("[" + t + "]", ...args);
 }
 
@@ -452,6 +457,7 @@ async function handleChat(ws, cfg, body, ctx) {
   session.busy = true;
   session.stamps.push(Date.now());
   status(ws, cfg, sender, "thinking");
+  ui.set({ player: sender });
   log(sender + " asked: " + text.slice(0, 120));
 
   try {
@@ -592,6 +598,7 @@ function start() {
   // plain port in PORT. Certificates and a hand-picked port are for a bare VPS
   // only; on these platforms they mean a crash at boot or an unreachable app.
   const platform = hostingPlatform();
+  ui = createUi(cfg);
   if (platform && cfg.tlsCertPath) {
     log("Running on " + platform + ", which already handles TLS.");
     log("Ignoring AI_TLS_CERT and AI_TLS_KEY - remove them from the dashboard.");
@@ -618,8 +625,13 @@ function start() {
   // A plain GET has to answer something, or a platform health check marks the
   // deploy dead and recycles it under a live Minecraft session.
   const onRequest = (req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("AI Companion bridge is up. Connect Minecraft with /connect wss://<this host>");
+    // A managed host only needs a health answer; a player running this on their
+    // own machine gets the app window instead.
+    if (platform) {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      return res.end("AI Companion bridge is up. Connect Minecraft with /connect wss://<this host>");
+    }
+    ui.handle(req, res);
   };
 
   let listener = null;
@@ -644,6 +656,7 @@ function start() {
   const wss = new WebSocketServer(wsOptions);
   listener.listen(cfg.port, "0.0.0.0");
 
+  ui.set({ port: cfg.port, provider: provider.label, model: cfg.model });
   log("Provider: " + provider.label + "  Model: " + cfg.model);
   log("Output mode: " + cfg.output);
   log("Listening on port " + cfg.port);
@@ -652,6 +665,13 @@ function start() {
     log("Chat mode is ON by default, just type normally. Say " + cfg.trigger + " off to need the prefix again.");
   } else {
     log("Then type in chat:  " + (cfg.trigger ? cfg.trigger + " hello" : "hello"));
+  }
+
+  // AICHAT_NO_WINDOW keeps the test suite from spawning browser windows.
+  if (!platform && !process.env.AICHAT_NO_WINDOW) {
+    const url = "http://localhost:" + cfg.port + "/";
+    log("Opening the app window at " + url);
+    setTimeout(() => openWindow(url), 300);
   }
 
   const ctx = createContext(cfg, log);
@@ -689,6 +709,7 @@ function start() {
 
   wss.on("connection", (ws, req) => {
     log("Minecraft connected from " + (req.socket.remoteAddress || "unknown"));
+    ui.set({ minecraft: true });
     ws.voxaiOpenedAt = Date.now();
     startKeepAlive(ws, cfg);
 
@@ -765,6 +786,7 @@ function start() {
     ws.on("close", (code, reason) => {
       clearTimeout(ws.voxaiFallback);
       stopKeepAlive(ws);
+      if (!wss.clients.size) ui.set({ minecraft: false, player: "" });
       log(
         "Minecraft disconnected" +
           (code ? " code=" + code : "") +
