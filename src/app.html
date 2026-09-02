@@ -357,6 +357,58 @@ code.inline{
   from{opacity:0;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px)}
   to{opacity:1;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 }
+.sheet{
+  width:min(430px,100%);border-radius:var(--r);overflow:hidden;
+  background:var(--slab-2);
+  box-shadow:inset 0 1px 0 var(--lit-2), 0 5px 0 var(--edge), 0 12px 24px rgba(0,0,0,.45);
+  animation:drop .18s cubic-bezier(.2,.9,.3,1);
+  max-height:calc(100vh - 48px);display:flex;flex-direction:column;
+}
+.sheet__shot{
+  position:relative;flex:none;aspect-ratio:16/9;
+  background:var(--deep) center/cover no-repeat;
+}
+.sheet__shot .chip{position:absolute;right:9px;top:9px}
+.sheet__head{flex:none;padding:15px 18px 0}
+.sheet__head h3{margin:0;font-size:16px;font-weight:700}
+.sheet__head p{margin:3px 0 0;font-size:11.5px;color:var(--ink-3)}
+
+.facts{
+  flex:1;min-height:0;overflow-y:auto;margin:14px 0 0;padding:0 18px;
+  display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:12.5px;
+}
+.facts dt{color:var(--ink-3)}
+.facts dd{margin:0;color:var(--ink-2);word-break:break-word;text-align:right}
+.facts dd.mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
+
+.sheet__note{
+  flex:none;margin:14px 18px 0;padding:11px 13px;border-radius:var(--r-sm);
+  font-size:12px;line-height:1.6;color:var(--ink-2);
+  background:var(--deep);box-shadow:inset 0 2px 3px rgba(0,0,0,.4);
+  border-left:3px solid var(--green);
+}
+.sheet__note.warn{border-left-color:var(--amber)}
+.sheet__note b{color:var(--ink)}
+.sheet__note code{
+  font-family:ui-monospace,Consolas,monospace;font-size:11px;
+  color:var(--green-lit);word-break:break-all;
+}
+.sheet__row{flex:none;display:flex;gap:9px;align-items:center;padding:16px 18px 18px}
+
+.bar-progress{
+  flex:none;position:relative;margin:14px 18px 0;height:22px;border-radius:var(--r-sm);
+  background:var(--deep);box-shadow:inset 0 2px 3px rgba(0,0,0,.45);overflow:hidden;
+}
+.bar-progress__fill{
+  position:absolute;inset:0 auto 0 0;width:0;background:var(--green);
+  transition:width .2s ease;
+}
+.bar-progress__label{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:var(--ink);
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+}
+
 .dlg{
   width:min(400px,100%);border-radius:var(--r);overflow:hidden;
   background:var(--slab-2);
@@ -605,15 +657,30 @@ code.inline{
 </div>
 
 <div class="scrim" id="scrim">
-  <div class="dlg">
-    <div class="dlg__shot" id="dlgShot"></div>
-    <div class="dlg__body">
-      <h3 id="dlgTitle">Install the AI?</h3>
-      <p id="dlgNote"></p>
+  <div class="sheet">
+    <div class="sheet__shot" id="dShot">
+      <span class="chip chip--ai" id="dAi" hidden>AI installed</span>
     </div>
-    <div class="dlg__row">
-      <button class="btn" id="dlgNo">Cancel</button>
-      <button class="btn btn--go" id="dlgYes">Install</button>
+
+    <div class="sheet__head">
+      <h3 id="dName">World</h3>
+      <p id="dWhere"></p>
+    </div>
+
+    <dl class="facts" id="dFacts"></dl>
+
+    <div class="sheet__note" id="dNote"></div>
+
+    <div class="bar-progress" id="dProgress" hidden>
+      <div class="bar-progress__fill" id="dProgressFill"></div>
+      <span class="bar-progress__label" id="dProgressText">Working</span>
+    </div>
+
+    <div class="sheet__row">
+      <button class="btn" id="dClose">Close</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="dRestore" hidden>Restore my world</button>
+      <button class="btn btn--go" id="dInstall">Install AI</button>
     </div>
   </div>
 </div>
@@ -630,6 +697,8 @@ var busy = false;
 
 var ICON_GET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7.5 10L12 14.5 16.5 10"/><path d="M4 19h16"/></svg>';
 var ICON_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-10"/></svg>';
+var ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 6.5l3 3"/></svg>';
+var ICON_UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 1 1 2.3 5.7"/><path d="M4 19v-6h6"/></svg>';
 var ICON_WORLD = '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>';
 
 function skeletons(n) {
@@ -742,9 +811,9 @@ function draw() {
 
     var get = document.createElement("button");
     get.className = "plate tile__get" + (w.installed ? " has" : "");
-    get.innerHTML = w.installed ? ICON_TICK : ICON_GET;
-    get.title = w.installed ? "AI installed - install again to update" : "Install the AI into this world";
-    get.onclick = function (ev) { ev.stopPropagation(); ask(w); };
+    get.innerHTML = ICON_PENCIL;
+    get.title = "World details";
+    get.onclick = function (ev) { ev.stopPropagation(); openWorld(w); };
 
     row.appendChild(open);
     row.appendChild(get);
@@ -755,46 +824,156 @@ function draw() {
   grid.parentNode.scrollTop = keep;
 }
 
-/* ---- ask before writing into a world ---- */
+/* ---- the world sheet: details, install, and putting the world back ---- */
 var scrim = document.getElementById("scrim");
-var pending = null;
+var current = null;
 
-function ask(w) {
-  pending = w;
-  document.getElementById("dlgShot").style.backgroundImage =
-    w.icon ? "url(" + iconUrl(w) + ")" : "none";
-  document.getElementById("dlgTitle").textContent =
-    (w.installed ? "Reinstall the AI in " : "Install the AI in ") + w.name + "?";
-  document.getElementById("dlgNote").textContent = w.installed
-    ? "The AI is already in this world. Installing again refreshes it to the newest version."
-    : "This adds the Bedrock AI behaviour pack to this world. Nothing else in the world changes.";
-  document.getElementById("dlgYes").textContent = w.installed ? "Update" : "Install";
-  scrim.className = "scrim open";
+function bytes(n) {
+  if (!n) return "0 MB";
+  var mb = n / 1048576;
+  return mb >= 1024 ? (mb / 1024).toFixed(2) + " GB" : mb.toFixed(mb < 10 ? 1 : 0) + " MB";
 }
 
-function closeDlg() { scrim.className = "scrim"; pending = null; }
-document.getElementById("dlgNo").onclick = closeDlg;
-scrim.onclick = function (e) { if (e.target === scrim) { beep("back"); closeDlg(); } };
-document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && pending) { beep("back"); closeDlg(); }
-});
+function when(ms) {
+  return ms ? new Date(ms).toLocaleString(undefined,
+    { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "-";
+}
 
-document.getElementById("dlgYes").onclick = function () {
-  var w = pending;
-  if (!w) return;
-  var btn = this;
-  var label = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>Installing';
-  fetch("/install?root=" + w.root + "&world=" + encodeURIComponent(w.id))
+function row(dl, label, value, mono) {
+  if (value === null || value === undefined || value === "") return;
+  var dt = document.createElement("dt");
+  dt.textContent = label;
+  var dd = document.createElement("dd");
+  dd.textContent = value;
+  if (mono) dd.className = "mono";
+  dl.appendChild(dt);
+  dl.appendChild(dd);
+}
+
+function openWorld(w) {
+  current = null;
+  scrim.className = "scrim open";
+  document.getElementById("dName").textContent = w.name;
+  document.getElementById("dWhere").textContent = "Loading details...";
+  document.getElementById("dFacts").innerHTML = "";
+  document.getElementById("dNote").textContent = "";
+  document.getElementById("dProgress").hidden = true;
+  document.getElementById("dShot").style.backgroundImage =
+    w.icon ? "url(" + iconUrl(w) + ")" : "none";
+
+  fetch("/world?root=" + w.root + "&id=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
+      if (!d.ok) {
+        document.getElementById("dWhere").textContent = d.message;
+        return;
+      }
+      current = d.world;
+      showWorld(d.world);
+    });
+}
+
+function showWorld(d) {
+  document.getElementById("dName").textContent = d.name;
+  document.getElementById("dWhere").textContent =
+    d.account + "  ·  last played " + when(d.played);
+  document.getElementById("dAi").hidden = !d.installed;
+
+  var dl = document.getElementById("dFacts");
+  dl.innerHTML = "";
+  row(dl, "Game mode", d.mode);
+  row(dl, "Difficulty", d.difficulty);
+  row(dl, "Cheats", d.cheats === null ? null : (d.cheats ? "On" : "Off"));
+  row(dl, "Seed", d.seed, true);
+  row(dl, "Last opened with", d.gameVersion);
+  row(dl, "Size on disk", bytes(d.bytes) + "  ·  " + d.files + " files");
+  row(dl, "Behaviour packs", String(d.packCount));
+  row(dl, "World id", d.voxenId || "not stamped yet", true);
+  row(dl, "Folder", d.folder, true);
+
+  var note = document.getElementById("dNote");
+  var restore = document.getElementById("dRestore");
+  var install = document.getElementById("dInstall");
+
+  if (d.backup) {
+    note.className = "sheet__note";
+    note.innerHTML = "<b>Your backup is saved.</b> The whole world was copied before the AI " +
+      "went in, on " + when(d.backup.savedAt) + " (" + bytes(d.backup.bytes) + ").<br>" +
+      "<code>" + d.backup.folder + "</code>";
+    restore.hidden = false;
+  } else {
+    note.className = "sheet__note warn";
+    note.innerHTML = "<b>Installing copies this world first.</b> The copy is kept outside " +
+      "Minecraft, so Restore my world can put everything back exactly as it is now.<br>" +
+      "<code>" + d.backupsFolder + "</code>";
+    restore.hidden = true;
+  }
+
+  install.textContent = d.installed ? "Reinstall AI" : "Install AI";
+  install.disabled = false;
+  restore.disabled = false;
+  if (d.cheats === false) {
+    note.className = "sheet__note warn";
+    note.innerHTML += "<br><br><b>Cheats are off in this world.</b> The AI cannot run any " +
+      "commands until you turn them on in the world's settings.";
+  }
+}
+
+function closeSheet() { scrim.className = "scrim"; current = null; }
+document.getElementById("dClose").onclick = closeSheet;
+scrim.onclick = function (e) { if (e.target === scrim) { beep("back"); closeSheet(); } };
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && current !== undefined && scrim.className.indexOf("open") >= 0) {
+    beep("back");
+    closeSheet();
+  }
+});
+
+function busyRow(on, label) {
+  var bar = document.getElementById("dProgress");
+  bar.hidden = !on;
+  document.getElementById("dProgressText").textContent = label || "Working";
+  if (!on) document.getElementById("dProgressFill").style.width = "0%";
+  document.getElementById("dInstall").disabled = on;
+  document.getElementById("dRestore").disabled = on;
+  document.getElementById("dClose").disabled = on;
+}
+
+document.getElementById("dInstall").onclick = function () {
+  if (!current) return;
+  busyRow(true, "Copying your world...");
+  fetch("/install?root=" + current.root + "&world=" + encodeURIComponent(current.id))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      busyRow(false);
       say(d.message, d.ok);
-      btn.disabled = false;
-      btn.textContent = label;
-      closeDlg();
       loadWorlds();
+      if (d.ok) openWorld(current);
+    });
+};
+
+document.getElementById("dRestore").onclick = function () {
+  if (!current) return;
+  var btn = this;
+  if (btn.dataset.armed !== "1") {
+    btn.dataset.armed = "1";
+    btn.textContent = "Sure? This replaces the world";
+    setTimeout(function () {
+      btn.dataset.armed = "";
+      btn.textContent = "Restore my world";
+    }, 4000);
+    return;
+  }
+  btn.dataset.armed = "";
+  btn.textContent = "Restore my world";
+  busyRow(true, "Putting your world back...");
+  fetch("/restore-world?root=" + current.root + "&world=" + encodeURIComponent(current.id))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      busyRow(false);
+      say(d.message, d.ok);
+      loadWorlds();
+      if (d.ok) closeSheet();
     });
 };
 
@@ -941,6 +1120,14 @@ function render(s) {
       " facts are arriving from the world, so the AI can see your health, inventory, biome and more.";
   } else {
     long.textContent = "No live data is arriving. Install the AI into the world you are playing.";
+  }
+
+  // a copy in progress reports its bytes through the same stream
+  if (s.job && s.job.total) {
+    var pct = Math.min(100, Math.round((s.job.bytes / s.job.total) * 100));
+    document.getElementById("dProgressFill").style.width = pct + "%";
+    document.getElementById("dProgressText").textContent =
+      (s.job.kind === "restore" ? "Putting your world back" : "Copying your world") + "  " + pct + "%";
   }
 
   var atBottom = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 24;

@@ -51,6 +51,7 @@ function createUi(cfg, onIdle, onRestart) {
     packVersion: "",
     worldCount: 0,
     installMessage: "",
+    job: null,
     lanAddresses: lanAddresses(),
   };
 
@@ -182,16 +183,49 @@ function createUi(cfg, onIdle, onRestart) {
       );
     }
 
+    if (path === "/world") {
+      const q = new URL(req.url, "http://x").searchParams;
+      let body;
+      try {
+        body = { ok: true, world: installer.worldDetails(parseInt(q.get("root"), 10) || 0, q.get("id") || "") };
+      } catch (err) {
+        body = { ok: false, message: err.message };
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(body));
+    }
+
+    if (path === "/restore-world") {
+      const q = new URL(req.url, "http://x").searchParams;
+      let body;
+      try {
+        const done = installer.restoreWorld(
+          parseInt(q.get("root"), 10) || 0,
+          q.get("world") || "",
+          (bytes, total) => set({ job: { kind: "restore", bytes, total } })
+        );
+        body = { ok: true, message: done.name + " restored from your backup." };
+      } catch (err) {
+        body = { ok: false, message: err.message };
+      }
+      set({ job: null });
+      refreshWorlds();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(body));
+    }
+
     if (path === "/install") {
       const q = new URL(req.url, "http://x").searchParams;
       const worldId = q.get("world") || "";
       const rootIndex = parseInt(q.get("root"), 10) || 0;
       let body;
       try {
-        const done = installer.install(worldId, rootIndex, cfg.port);
+        const done = installer.install(worldId, rootIndex, cfg.port,
+          (bytes, total) => set({ job: { kind: "backup", bytes, total } }));
         body = {
           ok: true,
           world: done.world,
+          backup: done.backup || null,
           message: done.world
             ? "AI installed in " + done.world
             : "Pack " + done.version + " installed. Pick a world to turn it on.",
@@ -199,6 +233,7 @@ function createUi(cfg, onIdle, onRestart) {
       } catch (err) {
         body = { ok: false, message: err.message };
       }
+      set({ job: null });
       refreshWorlds();
       set({ installMessage: body.message });
       res.writeHead(200, { "Content-Type": "application/json" });
