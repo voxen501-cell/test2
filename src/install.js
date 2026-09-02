@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 const PACK_FILES = require("./packfiles");
+
+const GAME_MODES = ["Survival", "Creative", "Adventure", "Spectator"];
 
 // Everything needed to put the behaviour pack into Minecraft without the
 // player downloading anything. The pack itself is baked into the exe.
@@ -72,6 +75,43 @@ function readWorldName(dir) {
   }
 }
 
+// level.dat is uncompressed Bedrock NBT. Rather than parse the whole tree,
+// find the GameType int tag by its name and read the value behind it.
+function readGameMode(worldDir) {
+  try {
+    const buf = fs.readFileSync(path.join(worldDir, "level.dat"));
+    const key = Buffer.from("GameType", "utf8");
+    let at = buf.indexOf(key);
+    while (at > 3) {
+      if (buf[at - 3] === 0x03 && buf.readUInt16LE(at - 2) === key.length) {
+        return GAME_MODES[buf.readInt32LE(at + key.length)] || null;
+      }
+      at = buf.indexOf(key, at + 1);
+    }
+  } catch (err) {
+    // a world mid-save, or one we cannot read, simply has no label
+  }
+  return null;
+}
+
+function iconPath(root, worldId) {
+  const file = path.join(root, "minecraftWorlds", worldId, "world_icon.jpeg");
+  return fs.existsSync(file) ? file : null;
+}
+
+// Documented deep link: minecraft://?load=<local level id>, and the level id
+// is the world folder name.
+function launchWorld(worldId) {
+  const uri = "minecraft://?load=" + encodeURIComponent(worldId);
+  const child = spawn("cmd", ["/c", "start", "", uri], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  child.unref();
+  return uri;
+}
+
 function listWorlds(root) {
   const dir = path.join(root, "minecraftWorlds");
   if (!fs.existsSync(dir)) return [];
@@ -90,6 +130,8 @@ function listWorlds(root) {
       name: readWorldName(full),
       played: stat.mtimeMs,
       installed: hasPack(full),
+      mode: readGameMode(full),
+      icon: !!iconPath(root, entry),
     });
   }
   return out.sort((a, b) => b.played - a.played);
@@ -139,4 +181,12 @@ function install(worldId) {
   return result;
 }
 
-module.exports = { findMinecraft, listWorlds, install, enableInWorld, manifest };
+module.exports = {
+  findMinecraft,
+  listWorlds,
+  install,
+  enableInWorld,
+  manifest,
+  iconPath,
+  launchWorld,
+};

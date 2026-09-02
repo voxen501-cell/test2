@@ -6,6 +6,7 @@ const path = require("path");
 // pkg keeps these beside the snapshot, so the same read works from the exe.
 const ASSETS = __dirname;
 const PAGE = fs.readFileSync(path.join(ASSETS, "app.html"), "utf8");
+const UI_ASSETS = require("./uiassets");
 const FONTS = {
   "/font/monocraft.ttf": path.join(ASSETS, "fonts", "Monocraft.ttf"),
   "/font/monocraft-bold.ttf": path.join(ASSETS, "fonts", "Monocraft-Bold.ttf"),
@@ -35,7 +36,7 @@ function createUi(cfg) {
       const root = installer.findMinecraft();
       state.minecraftFound = !!root;
       state.packVersion = installer.manifest().header.version.join(".");
-      state.worlds = root ? installer.listWorlds(root).slice(0, 25) : [];
+      state.worlds = root ? installer.listWorlds(root) : [];
     } catch (err) {
       state.minecraftFound = false;
       state.worlds = [];
@@ -80,6 +81,42 @@ function createUi(cfg) {
       }
     }
 
+    if (path.startsWith("/ui/")) {
+      const asset = UI_ASSETS[path.slice(4)];
+      if (!asset) {
+        res.writeHead(404);
+        return res.end();
+      }
+      res.writeHead(200, { "Content-Type": asset.type, "Cache-Control": "max-age=86400" });
+      return res.end(Buffer.from(asset.base64, "base64"));
+    }
+
+    if (path === "/world-icon") {
+      const id = new URL(req.url, "http://x").searchParams.get("id") || "";
+      const root = installer.findMinecraft();
+      const file = root && id ? installer.iconPath(root, id) : null;
+      if (!file) {
+        res.writeHead(404);
+        return res.end();
+      }
+      res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "max-age=60" });
+      return res.end(fs.readFileSync(file));
+    }
+
+    if (path === "/launch") {
+      const id = new URL(req.url, "http://x").searchParams.get("world") || "";
+      let body;
+      try {
+        if (!id) throw new Error("no world given");
+        installer.launchWorld(id);
+        body = { ok: true, message: "Opening the world in Minecraft…" };
+      } catch (err) {
+        body = { ok: false, message: err.message };
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(body));
+    }
+
     if (path === "/worlds") {
       refreshWorlds();
       push();
@@ -94,8 +131,9 @@ function createUi(cfg) {
         const done = installer.install(worldId);
         body = {
           ok: true,
+          world: done.world,
           message: done.world
-            ? "Pack " + done.version + " installed and turned on in " + done.world
+            ? "AI installed in " + done.world
             : "Pack " + done.version + " installed. Pick a world to turn it on.",
         };
       } catch (err) {
