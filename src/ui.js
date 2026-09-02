@@ -188,7 +188,7 @@ function createUi(cfg, onIdle, onRestart) {
       const rootIndex = parseInt(q.get("root"), 10) || 0;
       let body;
       try {
-        const done = installer.install(worldId, rootIndex);
+        const done = installer.install(worldId, rootIndex, cfg.port);
         body = {
           ok: true,
           world: done.world,

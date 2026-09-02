@@ -104,12 +104,23 @@ function listRoots() {
     .filter((r) => r.count > 0);
 }
 
-function writePack(root) {
+// The pack tries to open the websocket link itself, so it has to know which
+// port this app is on. The value is written in as the pack is installed, which
+// keeps the two from drifting apart if the port is ever changed.
+function withPort(rel, buf, port) {
+  if (rel !== "scripts/autoconnect.js" || !port) return buf;
+  const text = buf
+    .toString("utf8")
+    .replace(/const BRIDGE_PORT = \d+;/, "const BRIDGE_PORT = " + port + ";");
+  return Buffer.from(text, "utf8");
+}
+
+function writePack(root, port) {
   const dest = path.join(root, "development_behavior_packs", PACK_FOLDER);
   for (const [rel, file] of Object.entries(PACK_FILES)) {
     const target = path.join(dest, rel.split("/").join(path.sep));
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, Buffer.from(file.base64, "base64"));
+    fs.writeFileSync(target, withPort(rel, Buffer.from(file.base64, "base64"), port));
   }
   return dest;
 }
@@ -227,7 +238,7 @@ function enableInWorld(root, worldId) {
   return readWorldName(worldDir);
 }
 
-function install(worldId, rootIndex) {
+function install(worldId, rootIndex, port) {
   const roots = findRoots();
   if (!roots.length) {
     throw new Error("Could not find Minecraft. Open Minecraft once, then try again.");
@@ -235,7 +246,7 @@ function install(worldId, rootIndex) {
   const root = roots[rootIndex] || roots[0];
 
   // the pack has to sit in the same root as the world that will load it
-  const dest = writePack(root);
+  const dest = writePack(root, port);
   const result = { root, dest, version: manifest().header.version.join("."), world: null };
   if (worldId) result.world = enableInWorld(root, worldId);
   return result;
