@@ -212,7 +212,9 @@ select.well option{background:var(--slab);color:var(--ink)}
 .chip--ai{color:#0c1a0d;background:var(--green)}
 
 /* the two buttons, sitting directly under the icon */
-.tile__row{display:flex;gap:6px;margin-top:8px}
+/* one height drives the row, and the install plate takes it as its width too,
+   so that button is square no matter what the name beside it does */
+.tile__row{--h:46px;display:flex;gap:6px;margin-top:8px;height:var(--h)}
 
 .plate{
   --side:var(--edge-2);
@@ -229,14 +231,18 @@ select.well option{background:var(--slab);color:var(--ink)}
 
 /* left: the world's name and when it was last played */
 .tile__open{
-  flex:1;min-width:0;padding:8px 10px;text-align:left;color:var(--ink);
+  flex:1;min-width:0;padding:0 10px;text-align:left;color:var(--ink);
+  display:flex;flex-direction:column;justify-content:center;
 }
-.tile__name{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tile__date{font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.tile__name{
+  font-size:13px;font-weight:650;line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tile__date{font-size:10.5px;line-height:1.3;color:var(--ink-3)}
 
 /* right: install, which becomes a tick once the pack is in */
 .tile__get{
-  flex:none;width:42px;display:grid;place-items:center;color:var(--ink-2);
+  flex:none;width:var(--h);display:grid;place-items:center;color:var(--ink-2);
 }
 .tile__get:hover{color:var(--ink)}
 .tile__get svg{width:17px;height:17px}
@@ -340,9 +346,9 @@ select.well option{background:var(--slab);color:var(--ink)}
   box-shadow:inset 0 1px 0 var(--lit), 0 6px 0 var(--edge), 0 10px 16px rgba(0,0,0,.5);
 }
 .skel__shot{aspect-ratio:16/9;border-radius:var(--r-sm)}
-.skel__row{display:flex;gap:6px;margin-top:8px}
-.skel__line{height:34px;border-radius:var(--r-sm);flex:1}
-.skel__line.short{flex:none;width:42px}
+.skel__row{--h:46px;display:flex;gap:6px;margin-top:8px;height:var(--h)}
+.skel__line{border-radius:var(--r-sm);flex:1}
+.skel__line.short{flex:none;width:var(--h)}
 .skel__shot,.skel__line{
   background:linear-gradient(90deg,var(--deep) 25%,var(--slab-2) 37%,var(--deep) 63%);
   background-size:200% 100%;animation:shimmer 1.4s linear infinite;
