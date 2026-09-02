@@ -601,6 +601,14 @@ function start() {
   if (platform && !process.env.PORT) {
     log("Warning: " + platform + " normally sets PORT itself. Leave it unset.");
   }
+  // Over wss the socket is already encrypted, so the client ignores an
+  // enableencryption request and then drops the plain-text session we fall
+  // back to. On a platform every connection is wss, so do not ask at all.
+  if (platform && !process.env.AI_ENCRYPTION && cfg.encryption === "auto") {
+    cfg.encryption = "off";
+    log("Connections here arrive over wss, so the extra encryption step is skipped.");
+    log("Set AI_ENCRYPTION=auto to ask for it anyway.");
+  }
   if (platform && cfg.port < 1024) {
     log("Port " + cfg.port + " cannot be opened on " + platform + "; using 10000 instead.");
     log("Delete the PORT variable in the dashboard and let the platform pick.");
