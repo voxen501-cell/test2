@@ -27,19 +27,24 @@ function createUi(cfg) {
     log: [],
     minecraftFound: false,
     packVersion: "",
-    worlds: [],
+    worldCount: 0,
     installMessage: "",
   };
 
+  // The world list runs to hundreds of entries. It is fetched on demand rather
+  // than pushed, so a log line does not resend it to every open page.
+  let worlds = [];
+
   function refreshWorlds() {
     try {
-      const root = installer.findMinecraft();
-      state.minecraftFound = !!root;
+      state.minecraftFound = installer.findRoots().length > 0;
       state.packVersion = installer.manifest().header.version.join(".");
-      state.worlds = root ? installer.listWorlds(root) : [];
+      worlds = state.minecraftFound ? installer.listWorlds() : [];
+      state.worldCount = worlds.length;
     } catch (err) {
       state.minecraftFound = false;
-      state.worlds = [];
+      worlds = [];
+      state.worldCount = 0;
     }
   }
 
@@ -92,9 +97,10 @@ function createUi(cfg) {
     }
 
     if (path === "/world-icon") {
-      const id = new URL(req.url, "http://x").searchParams.get("id") || "";
-      const root = installer.findMinecraft();
-      const file = root && id ? installer.iconPath(root, id) : null;
+      const q = new URL(req.url, "http://x").searchParams;
+      const id = q.get("id") || "";
+      const rootIndex = parseInt(q.get("root"), 10) || 0;
+      const file = id ? installer.iconPath(rootIndex, id) : null;
       if (!file) {
         res.writeHead(404);
         return res.end();
@@ -117,18 +123,33 @@ function createUi(cfg) {
       return res.end(JSON.stringify(body));
     }
 
+    if (path === "/roots") {
+      let list = [];
+      try {
+        list = installer.listRoots().sort((a, b) => b.newest - a.newest);
+      } catch (err) {
+        list = [];
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ roots: list }));
+    }
+
     if (path === "/worlds") {
       refreshWorlds();
       push();
       res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ worlds: state.worlds, found: state.minecraftFound }));
+      return res.end(
+        JSON.stringify({ worlds: worlds, found: state.minecraftFound })
+      );
     }
 
     if (path === "/install") {
-      const worldId = new URL(req.url, "http://x").searchParams.get("world") || "";
+      const q = new URL(req.url, "http://x").searchParams;
+      const worldId = q.get("world") || "";
+      const rootIndex = parseInt(q.get("root"), 10) || 0;
       let body;
       try {
-        const done = installer.install(worldId);
+        const done = installer.install(worldId, rootIndex);
         body = {
           ok: true,
           world: done.world,

@@ -16,11 +16,14 @@ function manifest() {
   );
 }
 
-// Minecraft for Windows keeps its data under the UWP package folder. The
-// Preview build is a separate package, so look for both.
+// Minecraft keeps worlds in more than one place. The UWP build uses its
+// package folder; the launcher build keeps a Shared folder plus one folder per
+// signed-in account, and the game shows all of them together. Reading only
+// Shared is why the app used to list a fraction of the worlds.
 function candidateRoots() {
-  const local = process.env.LOCALAPPDATA;
   const roots = [];
+  const local = process.env.LOCALAPPDATA;
+
   if (local) {
     const packages = path.join(local, "Packages");
     for (const pkg of [
@@ -30,31 +33,75 @@ function candidateRoots() {
       roots.push(path.join(packages, pkg, "LocalState", "games", "com.mojang"));
     }
   }
-  // the launcher's "Minecraft Bedrock" data folder, used by some installs
+
   if (process.env.APPDATA) {
-    roots.push(
-      path.join(
-        process.env.APPDATA,
-        "Minecraft Bedrock",
-        "Users",
-        "Shared",
-        "games",
-        "com.mojang"
-      )
-    );
+    const users = path.join(process.env.APPDATA, "Minecraft Bedrock", "Users");
+    try {
+      for (const account of fs.readdirSync(users)) {
+        roots.push(path.join(users, account, "games", "com.mojang"));
+      }
+    } catch (err) {
+      // no launcher install, which is fine
+    }
   }
   return roots;
 }
 
-function findMinecraft() {
+// Every root that actually holds worlds, newest-used first.
+function findRoots() {
+  const found = [];
   for (const root of candidateRoots()) {
     try {
-      if (fs.existsSync(path.join(root, "minecraftWorlds"))) return root;
+      const worlds = path.join(root, "minecraftWorlds");
+      if (!fs.existsSync(worlds)) continue;
+      if (!fs.readdirSync(worlds).length) continue;
+      found.push(root);
     } catch (err) {
-      // an unreadable candidate is simply not the one
+      // an unreadable candidate is simply not one of ours
     }
   }
-  return null;
+  return found;
+}
+
+function findMinecraft() {
+  return findRoots()[0] || null;
+}
+
+// A name a person can recognise. The launcher folders are account ids, which
+// mean nothing on their own, so they are numbered and shown with their tail.
+function rootLabel(root, index) {
+  const parts = root.split(path.sep);
+  const at = parts.lastIndexOf("Users");
+  const folder = at >= 0 && parts[at + 1] ? parts[at + 1] : "";
+
+  if (root.indexOf("MinecraftWindowsBeta") >= 0) return "Preview";
+  if (root.indexOf("MinecraftUWP") >= 0) return "Microsoft Store";
+  if (folder === "Shared") return "Shared";
+  if (/^\d+$/.test(folder)) return "Account " + folder.slice(-4);
+  return folder || "Account " + (index + 1);
+}
+
+// Root list with a label and how many worlds each holds, busiest first.
+function listRoots() {
+  return findRoots()
+    .map((root, index) => {
+      let count = 0;
+      let newest = 0;
+      try {
+        const dir = path.join(root, "minecraftWorlds");
+        for (const entry of fs.readdirSync(dir)) {
+          const full = path.join(dir, entry);
+          if (!fs.existsSync(path.join(full, "level.dat"))) continue;
+          count++;
+          const t = fs.statSync(full).mtimeMs;
+          if (t > newest) newest = t;
+        }
+      } catch (err) {
+        // an unreadable root reports nothing rather than breaking the list
+      }
+      return { index, label: rootLabel(root, index), path: root, count, newest };
+    })
+    .filter((r) => r.count > 0);
 }
 
 function writePack(root) {
@@ -94,7 +141,9 @@ function readGameMode(worldDir) {
   return null;
 }
 
-function iconPath(root, worldId) {
+function iconPath(rootIndex, worldId) {
+  const root = findRoots()[rootIndex];
+  if (!root) return null;
   const file = path.join(root, "minecraftWorlds", worldId, "world_icon.jpeg");
   return fs.existsSync(file) ? file : null;
 }
@@ -112,7 +161,7 @@ function launchWorld(worldId) {
   return uri;
 }
 
-function listWorlds(root) {
+function listWorldsIn(root, rootIndex) {
   const dir = path.join(root, "minecraftWorlds");
   if (!fs.existsSync(dir)) return [];
   const out = [];
@@ -125,16 +174,26 @@ function listWorlds(root) {
       continue;
     }
     if (!stat.isDirectory()) continue;
+    if (!fs.existsSync(path.join(full, "level.dat"))) continue;
     out.push({
+      key: rootIndex + ":" + entry,
       id: entry,
+      root: rootIndex,
       name: readWorldName(full),
       played: stat.mtimeMs,
       installed: hasPack(full),
       mode: readGameMode(full),
-      icon: !!iconPath(root, entry),
+      icon: fs.existsSync(path.join(full, "world_icon.jpeg")),
     });
   }
-  return out.sort((a, b) => b.played - a.played);
+  return out;
+}
+
+function listWorlds() {
+  const roots = findRoots();
+  const all = [];
+  roots.forEach((root, i) => all.push(...listWorldsIn(root, i)));
+  return all.sort((a, b) => b.played - a.played);
 }
 
 function packListPath(worldDir) {
@@ -168,13 +227,14 @@ function enableInWorld(root, worldId) {
   return readWorldName(worldDir);
 }
 
-function install(worldId) {
-  const root = findMinecraft();
-  if (!root) {
-    throw new Error(
-      "Could not find Minecraft. Open Minecraft once, then try again."
-    );
+function install(worldId, rootIndex) {
+  const roots = findRoots();
+  if (!roots.length) {
+    throw new Error("Could not find Minecraft. Open Minecraft once, then try again.");
   }
+  const root = roots[rootIndex] || roots[0];
+
+  // the pack has to sit in the same root as the world that will load it
   const dest = writePack(root);
   const result = { root, dest, version: manifest().header.version.join("."), world: null };
   if (worldId) result.world = enableInWorld(root, worldId);
@@ -183,6 +243,8 @@ function install(worldId) {
 
 module.exports = {
   findMinecraft,
+  findRoots,
+  listRoots,
   listWorlds,
   install,
   enableInWorld,
