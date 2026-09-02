@@ -6,312 +6,343 @@
 <title>Bedrock AI</title>
 <link rel="icon" href="/ui/logo.png">
 <style>
+/* Everything here is built on one idea: surfaces have thickness.
+   A raised slab shows a lit top edge, a dark bottom edge, and a solid side
+   underneath it. Pressing takes the side away and drops the slab into place.
+   A well does the opposite - dark at the top, lit at the bottom. */
 :root{
-  /* the accent is the logo's own blue-to-green run */
-  --blue:#3b9eff;
-  --green:#3ed44b;
-  --accent:#3b9eff;
+  --void:#0b0c0e;      /* behind everything */
+  --deep:#141519;      /* recessed floor */
+  --slab:#22242a;      /* the standard raised surface */
+  --slab-2:#2a2d34;    /* a slab sitting on a slab */
+  --slab-3:#33373f;    /* hover */
+  --edge:#0e0f12;      /* the side of a slab, its thickness */
+  --edge-2:#16181c;
 
-  --bg:#0e1116;
-  --surface:#161a21;
-  --surface-2:#1c212a;
-  --surface-3:#242a35;
-  --line:#252b36;
-  --line-2:#333b48;
+  --lit:rgba(255,255,255,.10);
+  --lit-2:rgba(255,255,255,.16);
+  --dark:rgba(0,0,0,.45);
 
-  --text:#e8ecf2;
-  --text-2:#a8b2c1;
-  --text-3:#6f7987;
+  --green:#43c94b;
+  --green-lit:#6be070;
+  --green-side:#1d6b23;
+  --blue:#3f9dfb;
+  --amber:#e8a838;
+  --red:#e05a4f;
 
-  --ok:#3ed44b;
-  --warn:#f2b33d;
-  --bad:#ff5f56;
-
-  --r:10px;
-  --r-sm:7px;
-  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
+  --ink:#eef0f3;
+  --ink-2:#a4abb6;
+  --ink-3:#6b7280;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{
-  background:var(--bg);
-  color:var(--text);
-  font:14px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
-  display:flex;overflow:hidden;
+  background:var(--void);
+  color:var(--ink);
+  font:14px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  display:flex;flex-direction:column;overflow:hidden;
   -webkit-font-smoothing:antialiased;
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-::-webkit-scrollbar{width:11px;height:11px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px;border:3px solid var(--bg)}
-::-webkit-scrollbar-thumb:hover{background:#48525f}
 
-/* ══ sidebar ══════════════════════════════════════════════ */
-.side{
-  width:232px;flex:none;
-  background:var(--surface);
-  border-right:1px solid var(--line);
-  display:flex;flex-direction:column;
-  padding:18px 14px 14px;
+::-webkit-scrollbar{width:14px}
+::-webkit-scrollbar-track{background:var(--void)}
+::-webkit-scrollbar-thumb{
+  background:var(--slab-2);border-radius:7px;border:4px solid var(--void);
+  box-shadow:inset 0 1px 0 var(--lit), inset 0 -1px 0 var(--dark);
 }
-.brand{display:flex;align-items:center;gap:11px;padding:0 6px 20px}
-.brand img{width:34px;height:34px;flex:none}
-.brand__name{font-size:15px;font-weight:650;letter-spacing:-.01em}
-.brand__sub{font-size:11px;color:var(--text-3);margin-top:-2px}
+::-webkit-scrollbar-thumb:hover{background:var(--slab-3)}
 
-.nav{display:flex;flex-direction:column;gap:2px}
-.nav__item{
-  display:flex;align-items:center;gap:11px;
-  padding:9px 11px;border-radius:var(--r-sm);
-  color:var(--text-2);font-size:13.5px;text-align:left;width:100%;
-  transition:background .12s, color .12s;
+/* ══ top bar: one thick slab across the window ══════════ */
+.bar{
+  flex:none;display:flex;align-items:center;gap:13px;padding:11px 18px;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:
+    inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
+    0 4px 0 var(--edge), 0 7px 14px rgba(0,0,0,.55);
+  z-index:20;
 }
-.nav__item:hover{background:var(--surface-2);color:var(--text)}
-.nav__item.on{background:var(--surface-3);color:var(--text);font-weight:600}
-.nav__item svg{width:17px;height:17px;flex:none;opacity:.85}
-.nav__item .badge{
-  margin-left:auto;font-size:11px;color:var(--text-3);
-  font-variant-numeric:tabular-nums;
-}
+.bar__logo{width:36px;height:36px;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.bar__name{font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.bar__engine{font-size:11px;color:var(--ink-3);line-height:1.2}
+.bar__spacer{flex:1}
 
-.side__foot{margin-top:auto;display:flex;flex-direction:column;gap:10px}
-
-/* status block */
 .status{
-  background:var(--surface-2);border:1px solid var(--line);
-  border-radius:var(--r);padding:12px;
+  display:flex;align-items:center;gap:10px;padding:7px 14px 7px 12px;border-radius:9px;
+  background:var(--deep);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.6), inset 0 -1px 0 var(--lit);
 }
-.status__top{display:flex;align-items:center;gap:9px}
-.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--text-3)}
-.dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(62,212,75,.16)}
-.dot.wait{background:var(--warn);box-shadow:0 0 0 3px rgba(242,179,61,.14)}
-.dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(255,95,86,.14)}
-.status__label{font-size:12.5px;font-weight:600}
-.status__meta{font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.45}
-.status__facts{
-  font-size:11px;margin-top:8px;padding-top:8px;
-  border-top:1px solid var(--line);color:var(--text-3);
+.lamp{
+  width:11px;height:11px;border-radius:50%;flex:none;background:var(--ink-3);
+  box-shadow:inset 0 -1px 2px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.25);
 }
-.status__facts.ok{color:var(--ok)}
-.status__facts.bad{color:var(--warn)}
-.side__note{font-size:10.5px;color:var(--text-3);text-align:center;line-height:1.45}
+.lamp.ok{background:var(--green);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 10px rgba(67,201,75,.8)}
+.lamp.wait{background:var(--amber);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 9px rgba(232,168,56,.65)}
+.lamp.bad{background:var(--red);box-shadow:inset 0 1px 1px rgba(255,255,255,.4),0 0 9px rgba(224,90,79,.7)}
+.status__text{font-size:12.5px;font-weight:600;line-height:1.2}
+.status__sub{font-size:10.5px;color:var(--ink-3);line-height:1.2}
 
-/* ══ main ═════════════════════════════════════════════════ */
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
-.head{
-  flex:none;padding:20px 24px 14px;
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+/* ══ shell ═════════════════════════════════════════════ */
+.shell{flex:1;min-height:0;display:flex}
+.rail{
+  width:196px;flex:none;background:var(--deep);
+  box-shadow:inset -4px 0 8px rgba(0,0,0,.45);
+  padding:16px 12px;display:flex;flex-direction:column;gap:9px;
 }
-.head h1{font-size:19px;font-weight:650;margin:0;letter-spacing:-.02em}
-.head .count{color:var(--text-3);font-size:13px;font-weight:400;margin-left:2px}
-.head__tools{margin-left:auto;display:flex;gap:9px;align-items:center}
+.tab{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:11px 13px;border-radius:9px;
+  font-size:13.5px;font-weight:600;color:var(--ink-2);text-align:left;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:
+    inset 0 1px 0 var(--lit), inset 0 -1px 0 var(--dark),
+    0 3px 0 var(--edge), 0 5px 8px rgba(0,0,0,.4);
+  transition:background .1s, color .1s, transform .07s, box-shadow .07s;
+}
+.tab:hover{background:linear-gradient(var(--slab-3),var(--slab-2));color:var(--ink)}
+.tab:active{transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+.tab.on{
+  color:#0c1a0d;background:linear-gradient(var(--green-lit),var(--green));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 3px 0 var(--green-side), 0 5px 9px rgba(0,0,0,.45);
+}
+.tab.on svg{opacity:1}
+.tab svg{width:17px;height:17px;flex:none;opacity:.8}
+.tab .badge{margin-left:auto;font-size:11px;font-weight:700;opacity:.7;font-variant-numeric:tabular-nums}
+.rail__foot{margin-top:auto;font-size:10px;color:#4a5058;text-align:center;line-height:1.5}
 
-.input{
-  background:var(--surface-2);border:1px solid var(--line);
-  border-radius:var(--r-sm);color:var(--text);
-  padding:8px 11px;font-size:13px;outline:0;
-  transition:border-color .12s, background .12s;
-}
-.input:focus{border-color:var(--accent);background:var(--surface-3)}
-.input::placeholder{color:var(--text-3)}
-select.input{cursor:pointer;padding-right:28px;-webkit-appearance:none;appearance:none;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%236f7987' stroke-width='1.6' stroke-linecap='round'/></svg>");
-  background-repeat:no-repeat;background-position:right 8px center;background-size:12px}
-.search{position:relative}
-.search input{padding-left:31px;width:210px}
-.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-3);pointer-events:none}
-
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:7px;
-  padding:8px 14px;border-radius:var(--r-sm);
-  font-size:13px;font-weight:600;
-  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
-  transition:background .12s, border-color .12s, transform .06s;
-}
-.btn:hover{background:var(--surface-3);border-color:var(--line-2)}
-.btn:active{transform:translateY(1px)}
-.btn svg{width:15px;height:15px}
-.btn--primary{
-  background:linear-gradient(135deg,var(--blue),var(--green));
-  border-color:transparent;color:#08131c;
-}
-.btn--primary:hover{filter:brightness(1.08);background:linear-gradient(135deg,var(--blue),var(--green))}
-.btn[disabled]{opacity:.45;pointer-events:none}
-
-/* ══ world grid ═══════════════════════════════════════════ */
-.scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 24px 24px}
-.grid{
-  display:grid;gap:16px;
-  grid-template-columns:repeat(auto-fill,minmax(216px,1fr));
-}
-.card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);overflow:hidden;
-  cursor:pointer;position:relative;
-  transition:border-color .14s, transform .14s, box-shadow .14s;
-}
-.card:hover{border-color:var(--line-2);transform:translateY(-2px);box-shadow:var(--shadow)}
-.card__shot{
-  position:relative;aspect-ratio:16/9;
-  background:var(--surface-2) center/cover no-repeat;
-  display:grid;place-items:center;
-}
-.card__shot::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(14,17,22,.55),transparent 55%);
-}
-.card__shot .ph{width:34px;height:34px;color:var(--line-2)}
-.card__chips{position:absolute;left:9px;bottom:8px;display:flex;gap:5px;z-index:1}
-.chip{
-  font-size:10.5px;font-weight:600;letter-spacing:.02em;
-  padding:2px 7px;border-radius:5px;
-  background:rgba(14,17,22,.72);backdrop-filter:blur(6px);color:var(--text-2);
-}
-.chip--ai{background:linear-gradient(135deg,var(--blue),var(--green));color:#08131c}
-.card__body{padding:10px 12px 12px;display:flex;align-items:flex-start;gap:8px}
-.card__text{flex:1;min-width:0}
-.card__name{
-  font-size:13.5px;font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.card__meta{font-size:11.5px;color:var(--text-3);margin-top:1px}
-.iconbtn{
-  flex:none;width:30px;height:30px;border-radius:var(--r-sm);
-  display:grid;place-items:center;color:var(--text-3);
-  border:1px solid transparent;
-  transition:background .12s, color .12s, border-color .12s;
-}
-.iconbtn:hover{background:var(--surface-3);color:var(--text);border-color:var(--line-2)}
-.iconbtn svg{width:15px;height:15px}
-.card__play{
-  position:absolute;inset:0;display:grid;place-items:center;
-  opacity:0;transition:opacity .14s;z-index:1;
-}
-.card:hover .card__play{opacity:1}
-.card__play span{
-  display:flex;align-items:center;gap:7px;
-  padding:8px 14px;border-radius:99px;font-size:12.5px;font-weight:650;
-  background:rgba(14,17,22,.82);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.14);
-}
-.card__play svg{width:13px;height:13px}
-
-/* ══ panels for the other views ═══════════════════════════ */
-.panel{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:20px 22px;margin-bottom:16px;max-width:660px;
-}
-.panel h2{font-size:14px;font-weight:650;margin:0 0 4px}
-.panel .sub{font-size:12.5px;color:var(--text-3);margin:0 0 16px}
-.cmd{
-  display:flex;align-items:center;gap:10px;
-  background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);
-  padding:12px 14px;margin-bottom:12px;
-}
-.cmd code{
-  flex:1;font:14px/1 ui-monospace,"Cascadia Mono",Consolas,monospace;
-  color:var(--green);user-select:all;
-}
-.steps{margin:16px 0 0;padding-left:0;list-style:none;counter-reset:s}
-.steps li{
-  position:relative;padding-left:30px;margin:11px 0;
-  font-size:13px;color:var(--text-2);counter-increment:s;
-}
-.steps li::before{
-  content:counter(s);position:absolute;left:0;top:0;
-  width:20px;height:20px;border-radius:50%;
-  background:var(--surface-3);color:var(--text-2);
-  font-size:11px;font-weight:650;display:grid;place-items:center;
-}
-.steps b{color:var(--text);font-weight:600}
-.hintbox{
-  background:var(--surface-2);border:1px solid var(--line);border-left:2px solid var(--accent);
-  border-radius:var(--r-sm);padding:11px 13px;font-size:12.5px;color:var(--text-2);margin-top:16px;
-}
-#log{
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-  padding:14px 16px;height:100%;overflow:auto;
-  font:11.5px/1.7 ui-monospace,"Cascadia Mono",Consolas,monospace;
-  color:var(--text-2);white-space:pre-wrap;
-}
+/* ══ main ══════════════════════════════════════════════ */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--void)}
 .view{display:none;flex:1;min-height:0;flex-direction:column}
 .view.on{display:flex}
-.empty{
-  grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3);
+
+.head{flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:16px 20px 13px}
+.head h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.02em}
+.head .count{
+  font-size:12px;font-weight:700;color:var(--ink-3);
+  padding:3px 9px;border-radius:7px;background:var(--deep);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.55);font-variant-numeric:tabular-nums;
 }
-.empty svg{width:38px;height:38px;margin-bottom:12px;opacity:.5}
+.head__tools{margin-left:auto;display:flex;gap:9px;align-items:center}
+
+.well{
+  background:var(--deep);color:var(--ink);border:0;border-radius:9px;
+  padding:9px 12px;font-size:13px;outline:0;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.62), inset 0 -1px 0 var(--lit);
+}
+.well::placeholder{color:var(--ink-3)}
+.well:focus{box-shadow:inset 0 2px 5px rgba(0,0,0,.62), 0 0 0 2px rgba(63,157,251,.55)}
+select.well{
+  cursor:pointer;padding-right:30px;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:12px;
+}
+select.well option{background:var(--slab);color:var(--ink)}
+.search{position:relative;display:flex}
+.search input{padding-left:33px;width:196px}
+.search>svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--ink-3);pointer-events:none}
+
+/* ══ the button: a slab with a visible side ════════════ */
+.btn{
+  --side:var(--edge);
+  --lip:4px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 16px;border-radius:9px;
+  font-size:13px;font-weight:700;color:var(--ink);
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:
+    inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
+    0 var(--lip) 0 var(--side), 0 calc(var(--lip) + 3px) 8px rgba(0,0,0,.45);
+  transform:translateY(0);
+  transition:transform .07s, box-shadow .07s, background .1s;
+}
+.btn:hover{background:linear-gradient(var(--slab-3),var(--slab-2))}
+.btn:active{--lip:0px;transform:translateY(4px);box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
+.btn svg{width:15px;height:15px}
+.btn--go{
+  --side:var(--green-side);color:#0c1a0d;
+  background:linear-gradient(var(--green-lit),var(--green));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.45),
+    0 var(--lip) 0 var(--side), 0 calc(var(--lip) + 3px) 9px rgba(0,0,0,.45);
+}
+.btn--go:hover{background:linear-gradient(#7ce881,var(--green-lit))}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* ══ world tiles ═══════════════════════════════════════ */
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:3px 20px 22px}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(212px,1fr))}
+
+.tile{
+  position:relative;border-radius:12px;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  padding:9px 9px 0;
+  box-shadow:
+    inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
+    0 6px 0 var(--edge), 0 10px 16px rgba(0,0,0,.5);
+  transform:translateY(0);
+  transition:transform .1s, box-shadow .1s, background .12s;
+}
+.tile:hover{
+  background:linear-gradient(var(--slab-3),var(--slab-2));
+  transform:translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
+    0 9px 0 var(--edge), 0 15px 22px rgba(0,0,0,.55);
+}
+
+/* the screenshot sits down inside the slab, like inlaid glass */
+.tile__shot{
+  position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;
+  background:var(--deep);display:grid;place-items:center;cursor:pointer;
+}
+.tile__shot::after{
+  content:"";position:absolute;inset:0;border-radius:7px;pointer-events:none;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.75), inset 0 -1px 0 rgba(255,255,255,.08);
+}
+.tile__shot img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .3s;
+}
+.tile__shot img.ready{opacity:1}
+.tile__shot .ph{width:32px;height:32px;color:#3a3f47}
+
+.chips{position:absolute;left:7px;bottom:7px;display:flex;gap:5px;z-index:2}
+.chip{
+  font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  padding:3px 7px;border-radius:5px;color:var(--ink-2);
+  background:rgba(11,12,14,.82);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 1px 2px rgba(0,0,0,.5);
+}
+.chip--ai{
+  color:#0c1a0d;background:linear-gradient(var(--green-lit),var(--green));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 2px 0 var(--green-side);
+}
+
+.tile__base{display:flex;align-items:center;gap:9px;padding:9px 3px 11px}
+.tile__text{flex:1;min-width:0;cursor:pointer}
+.tile__name{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile__date{font-size:11px;color:var(--ink-3)}
+
+/* install: its own small slab, a download plate */
+.get{
+  --side:var(--edge-2);
+  flex:none;width:36px;height:32px;border-radius:8px;
+  display:grid;place-items:center;color:var(--ink-2);
+  background:linear-gradient(var(--slab-3),var(--slab-2));
+  box-shadow:
+    inset 0 1px 0 var(--lit), 0 3px 0 var(--side), 0 5px 7px rgba(0,0,0,.4);
+  transition:transform .07s, box-shadow .07s, color .1s, background .1s;
+}
+.get:hover{color:var(--ink);background:linear-gradient(#3c414a,var(--slab-3))}
+.get:active{transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+.get svg{width:16px;height:16px}
+.get.has{
+  --side:var(--green-side);color:#0c1a0d;
+  background:linear-gradient(var(--green-lit),var(--green));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 3px 0 var(--side), 0 5px 7px rgba(0,0,0,.4);
+}
+.get.has:hover{background:linear-gradient(#7ce881,var(--green-lit))}
+
+/* ══ panels ════════════════════════════════════════════ */
+.panel{
+  border-radius:12px;padding:20px 22px;margin-bottom:18px;max-width:620px;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:
+    inset 0 1px 0 var(--lit-2), inset 0 -1px 0 var(--dark),
+    0 5px 0 var(--edge), 0 9px 16px rgba(0,0,0,.45);
+}
+.panel h2{font-size:14.5px;font-weight:700;margin:0 0 4px}
+.panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 16px}
+.cmdrow{display:flex;gap:10px;align-items:stretch}
+.cmdrow code{
+  flex:1;display:flex;align-items:center;padding:0 14px;border-radius:9px;
+  font:14px/1 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color:var(--green-lit);user-select:all;background:var(--deep);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.7), inset 0 -1px 0 var(--lit);
+}
+.steps{margin:18px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{position:relative;padding-left:34px;margin:12px 0;font-size:13px;color:var(--ink-2);counter-increment:s}
+.steps li::before{
+  content:counter(s);position:absolute;left:0;top:-1px;
+  width:23px;height:23px;border-radius:50%;
+  font-size:11px;font-weight:700;color:var(--ink);display:grid;place-items:center;
+  background:linear-gradient(var(--slab-3),var(--slab-2));
+  box-shadow:inset 0 1px 0 var(--lit), 0 2px 0 var(--edge-2);
+}
+.steps b{color:var(--ink);font-weight:700}
+.aside{
+  margin-top:18px;padding:12px 14px;border-radius:9px;font-size:12.5px;color:var(--ink-2);
+  background:var(--deep);box-shadow:inset 0 2px 5px rgba(0,0,0,.55);
+  border-left:3px solid var(--blue);
+}
+#log{
+  height:100%;overflow:auto;padding:15px 17px;border-radius:12px;background:var(--deep);
+  box-shadow:inset 0 3px 9px rgba(0,0,0,.72), inset 0 -1px 0 var(--lit);
+  font:11.5px/1.7 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color:var(--ink-2);white-space:pre-wrap;
+}
+.empty{grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink-3)}
+.empty svg{width:40px;height:40px;margin-bottom:12px;opacity:.4}
 .empty p{margin:0;font-size:13.5px}
 
-/* ══ dialog ═══════════════════════════════════════════════ */
-.scrim{
-  position:fixed;inset:0;background:rgba(8,10,14,.66);backdrop-filter:blur(3px);
-  display:none;place-items:center;z-index:60;padding:24px;
-}
-.scrim.open{display:grid;animation:fade .14s ease}
-@keyframes fade{from{opacity:0}to{opacity:1}}
+/* ══ dialog ════════════════════════════════════════════ */
+.scrim{position:fixed;inset:0;background:rgba(6,7,9,.72);display:none;place-items:center;z-index:60;padding:24px}
+.scrim.open{display:grid;animation:fade .13s ease}
 .dlg{
-  background:var(--surface);border:1px solid var(--line-2);
-  border-radius:14px;width:min(400px,100%);overflow:hidden;box-shadow:var(--shadow);
-  animation:pop .16s cubic-bezier(.2,.9,.3,1);
+  width:min(400px,100%);border-radius:14px;overflow:hidden;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:inset 0 1px 0 var(--lit-2), 0 8px 0 var(--edge), 0 18px 40px rgba(0,0,0,.7);
+  animation:drop .18s cubic-bezier(.2,.9,.3,1);
 }
-@keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
-.dlg__shot{aspect-ratio:16/9;background:var(--surface-2) center/cover no-repeat}
-.dlg__body{padding:18px 20px}
-.dlg h3{margin:0 0 6px;font-size:15px;font-weight:650}
-.dlg p{margin:0;font-size:12.5px;color:var(--text-3);line-height:1.55}
-.dlg__row{display:flex;gap:9px;justify-content:flex-end;padding:0 20px 20px}
+.dlg__shot{
+  aspect-ratio:16/9;margin:10px 10px 0;border-radius:8px;
+  background:var(--deep) center/cover no-repeat;
+  box-shadow:inset 0 2px 7px rgba(0,0,0,.75);
+}
+.dlg__body{padding:17px 20px 4px}
+.dlg h3{margin:0 0 7px;font-size:15.5px;font-weight:700}
+.dlg p{margin:0;font-size:12.5px;color:var(--ink-3);line-height:1.55}
+.dlg__row{display:flex;gap:10px;justify-content:flex-end;padding:18px 20px 20px}
 
 .toast{
-  position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);
-  background:var(--surface-3);border:1px solid var(--line-2);
-  border-radius:99px;padding:9px 18px;font-size:12.5px;
-  box-shadow:var(--shadow);opacity:0;pointer-events:none;
-  transition:opacity .18s, transform .18s;z-index:70;max-width:70vw;
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);
+  padding:11px 20px;border-radius:11px;font-size:12.5px;font-weight:600;
+  background:linear-gradient(var(--slab-3),var(--slab-2));
+  box-shadow:inset 0 1px 0 var(--lit-2), 0 4px 0 var(--edge), 0 10px 20px rgba(0,0,0,.6);
+  opacity:0;pointer-events:none;z-index:70;max-width:70vw;
+  transition:opacity .18s, transform .18s;
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.toast.good{border-color:rgba(62,212,75,.4)}
-.toast.bad{border-color:rgba(242,179,61,.45)}
+.toast.good{color:var(--green-lit)}
+.toast.bad{color:var(--amber)}
 
-/* ══ motion ═══════════════════════════════════════════════ */
+/* ══ motion ════════════════════════════════════════════ */
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes drop{from{opacity:0;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes shimmer{to{background-position:-200% 0}}
-@keyframes pulse{
-  0%,100%{box-shadow:0 0 0 3px rgba(242,179,61,.14)}
-  50%{box-shadow:0 0 0 6px rgba(242,179,61,.04)}
-}
-
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.55}}
 .spinning{animation:spin .7s linear infinite}
-.dot.wait{animation:pulse 2s ease-in-out infinite}
+.lamp.wait{animation:breathe 2.2s ease-in-out infinite}
+.tile{animation:rise .3s cubic-bezier(.2,.9,.3,1) both}
+.view.on{animation:fade .2s ease both}
 
-/* cards arrive in a short stagger; only the first screenful is delayed so a
-   long list still appears at once */
-.card{animation:rise .28s cubic-bezier(.2,.9,.3,1) both}
-
-/* thumbnails fade in as they decode, rather than popping */
-.card__shot img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  opacity:0;transition:opacity .3s ease;
-}
-.card__shot img.ready{opacity:1}
-
-/* skeletons while the list loads */
 .skel{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);overflow:hidden;
+  border-radius:12px;padding:9px 9px 11px;
+  background:linear-gradient(var(--slab-2),var(--slab));
+  box-shadow:inset 0 1px 0 var(--lit), 0 6px 0 var(--edge), 0 10px 16px rgba(0,0,0,.5);
 }
-.skel__shot{aspect-ratio:16/9}
-.skel__line{height:11px;border-radius:5px;margin:11px 12px 0}
-.skel__line.short{width:52%;height:9px;margin-bottom:14px;opacity:.6}
+.skel__shot{aspect-ratio:16/9;border-radius:7px}
+.skel__line{height:11px;border-radius:6px;margin:11px 3px 0}
+.skel__line.short{width:52%;height:9px;opacity:.55}
 .skel__shot,.skel__line{
-  background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 37%,var(--surface-2) 63%);
-  background-size:200% 100%;
-  animation:shimmer 1.3s linear infinite;
+  background:linear-gradient(90deg,var(--deep) 25%,var(--slab-2) 37%,var(--deep) 63%);
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite;
 }
-
-.view.on{animation:rise .22s cubic-bezier(.2,.9,.3,1) both}
-
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
@@ -319,101 +350,95 @@ select.input{cursor:pointer;padding-right:28px;-webkit-appearance:none;appearanc
 </head>
 <body>
 
-<aside class="side">
-  <div class="brand">
-    <img src="/ui/logo.png" alt="">
+<div class="bar">
+  <img class="bar__logo" src="/ui/logo.png" alt="">
+  <div>
+    <div class="bar__name">Bedrock AI</div>
+    <div class="bar__engine" id="engine">starting…</div>
+  </div>
+  <span class="bar__spacer"></span>
+  <div class="status">
+    <span class="lamp" id="lamp"></span>
     <div>
-      <div class="brand__name">Bedrock AI</div>
-      <div class="brand__sub" id="engine">starting…</div>
+      <div class="status__text" id="status">Starting</div>
+      <div class="status__sub" id="statusSub">setting up</div>
     </div>
   </div>
+</div>
 
-  <nav class="nav">
-    <button class="nav__item on" data-view="worlds">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      Worlds <span class="badge" id="navCount"></span>
+<div class="shell">
+  <nav class="rail">
+    <button class="tab on" data-view="worlds">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Worlds<span class="badge" id="navCount"></span>
     </button>
-    <button class="nav__item" data-view="connect">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><path d="M8 12h8"/></svg>
+    <button class="tab" data-view="connect">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><path d="M8 12h8"/></svg>
       Connect
     </button>
-    <button class="nav__item" data-view="activity">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+    <button class="tab" data-view="activity">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
       Activity
     </button>
+    <div class="rail__foot">Not an official Minecraft product.<br>Not associated with Mojang.</div>
   </nav>
 
-  <div class="side__foot">
-    <div class="status">
-      <div class="status__top">
-        <span class="dot" id="dot"></span>
-        <span class="status__label" id="status">Starting</span>
-      </div>
-      <div class="status__meta" id="statusMeta">Setting things up…</div>
-      <div class="status__facts" id="facts" hidden></div>
-    </div>
-    <p class="side__note">Not an official Minecraft product.<br>Not approved by or associated with Mojang.</p>
-  </div>
-</aside>
+  <main class="main">
 
-<main class="main">
-
-  <div class="view on" id="view-worlds">
-    <header class="head">
-      <h1>Worlds <span class="count" id="count"></span></h1>
-      <div class="head__tools">
-        <select class="input" id="account" title="Filter by account"></select>
-        <label class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <input class="input" id="search" type="text" placeholder="Search worlds" autocomplete="off">
-        </label>
-        <button class="btn" id="rescan">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
-          Refresh
-        </button>
-      </div>
-    </header>
-    <div class="scroll">
-      <div class="grid" id="grid"></div>
-    </div>
-  </div>
-
-  <div class="view" id="view-connect">
-    <header class="head"><h1>Connect</h1></header>
-    <div class="scroll">
-      <div class="panel">
-        <h2>Run this once in Minecraft chat</h2>
-        <p class="sub">Opening a world from the Worlds tab copies it for you.</p>
-        <div class="cmd">
-          <code id="cmd">/connect localhost:8080</code>
-          <button class="btn" id="copy">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-            Copy
+    <div class="view on" id="view-worlds">
+      <div class="head">
+        <h1>Worlds</h1><span class="count" id="count">—</span>
+        <div class="head__tools">
+          <select class="well" id="account" title="Filter by account"></select>
+          <label class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input class="well" id="search" type="text" placeholder="Search worlds" autocomplete="off">
+          </label>
+          <button class="btn" id="rescan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+            Refresh
           </button>
         </div>
-        <ol class="steps">
-          <li>Open a world with <b>cheats on</b></li>
-          <li>Press <b>T</b> for chat, paste with <b>Ctrl+V</b>, press <b>Enter</b></li>
-          <li>Type <b>ai hello</b> to start talking</li>
-        </ol>
-        <div class="hintbox">Minecraft has no way to run this command from outside the game,
-          so it has to be pasted once per session.</div>
       </div>
+      <div class="scroll"><div class="grid" id="grid"></div></div>
+    </div>
 
-      <div class="panel">
-        <h2>Live world data</h2>
-        <p class="sub">What the AI can actually see while you play.</p>
-        <div id="factsLong" style="font-size:13px;color:var(--text-2)">Nothing yet.</div>
+    <div class="view" id="view-connect">
+      <div class="head"><h1>Connect</h1></div>
+      <div class="scroll">
+        <div class="panel">
+          <h2>Run this once in Minecraft chat</h2>
+          <p class="sub">Opening a world from the Worlds tab copies it for you.</p>
+          <div class="cmdrow">
+            <code id="cmd">/connect localhost:8080</code>
+            <button class="btn btn--go" id="copy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              Copy
+            </button>
+          </div>
+          <ol class="steps">
+            <li>Open a world with <b>cheats on</b></li>
+            <li>Press <b>T</b> for chat, paste with <b>Ctrl+V</b>, press <b>Enter</b></li>
+            <li>Type <b>ai hello</b> to start talking</li>
+          </ol>
+          <div class="aside">Minecraft has no way to run this command from outside the game,
+            so it has to be pasted once per session.</div>
+        </div>
+        <div class="panel">
+          <h2>Live world data</h2>
+          <p class="sub">What the AI can actually see while you play.</p>
+          <div id="factsLong" style="font-size:13px;color:var(--ink-2)">Nothing yet.</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="view" id="view-activity">
-    <header class="head"><h1>Activity</h1></header>
-    <div class="scroll"><div id="log">waiting…</div></div>
-  </div>
+    <div class="view" id="view-activity">
+      <div class="head"><h1>Activity</h1></div>
+      <div class="scroll"><div id="log">waiting…</div></div>
+    </div>
 
-</main>
+  </main>
+</div>
 
 <div class="scrim" id="scrim">
   <div class="dlg">
@@ -424,7 +449,7 @@ select.input{cursor:pointer;padding-right:28px;-webkit-appearance:none;appearanc
     </div>
     <div class="dlg__row">
       <button class="btn" id="dlgNo">Cancel</button>
-      <button class="btn btn--primary" id="dlgYes">Install</button>
+      <button class="btn btn--go" id="dlgYes">Install</button>
     </div>
   </div>
 </div>
@@ -439,6 +464,10 @@ var account = document.getElementById("account");
 var allWorlds = [];
 var busy = false;
 
+var ICON_GET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7.5 10L12 14.5 16.5 10"/><path d="M4 19h16"/></svg>';
+var ICON_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-10"/></svg>';
+var ICON_WORLD = '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>';
+
 function skeletons(n) {
   var html = "";
   for (var i = 0; i < n; i++) {
@@ -447,10 +476,6 @@ function skeletons(n) {
   }
   grid.innerHTML = html;
 }
-
-var ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 6.5l3 3"/></svg>';
-var ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
-var ICON_WORLD = '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>';
 
 /* ---- sound ---- */
 var SOUND = { click: new Audio("/ui/click.wav"), back: new Audio("/ui/back.wav") };
@@ -461,21 +486,17 @@ function beep(which) {
   try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
 }
 document.addEventListener("click", function (e) {
-  var el = e.target.closest ? e.target.closest("button,.card") : null;
+  var el = e.target.closest ? e.target.closest("button,.tile__shot,.tile__text") : null;
   if (!el || el.disabled) return;
   beep(el.id === "dlgNo" || el.id === "rescan" ? "back" : "click");
 }, true);
 
 /* ---- views ---- */
-Array.prototype.forEach.call(document.querySelectorAll(".nav__item"), function (t) {
+Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
   t.onclick = function () {
-    Array.prototype.forEach.call(document.querySelectorAll(".nav__item"), function (x) {
-      x.className = "nav__item";
-    });
-    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (x) {
-      x.className = "view";
-    });
-    t.className = "nav__item on";
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (x) { x.className = "tab"; });
+    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (x) { x.className = "view"; });
+    t.className = "tab on";
     document.getElementById("view-" + t.dataset.view).className = "view on";
   };
 });
@@ -490,14 +511,11 @@ function say(text, good) {
   toastTimer = setTimeout(function () { toast.className = "toast"; }, 4200);
 }
 
-function iconUrl(w) {
-  return "/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id);
-}
+function iconUrl(w) { return "/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id); }
 
 function shortDate(ms) {
   var d = new Date(ms);
-  var now = new Date();
-  var sameYear = d.getFullYear() === now.getFullYear();
+  var sameYear = d.getFullYear() === new Date().getFullYear();
   return d.toLocaleDateString(undefined, sameYear
     ? { month: "short", day: "numeric" }
     : { month: "short", day: "numeric", year: "numeric" });
@@ -523,14 +541,14 @@ function draw() {
   }
 
   list.forEach(function (w, i) {
-    var card = document.createElement("div");
-    card.className = "card";
-    card.style.animationDelay = (i < 18 ? i * 22 : 0) + "ms";
-    card.title = "Open " + w.name + " in Minecraft";
-    card.onclick = function () { launch(w); };
+    var tile = document.createElement("div");
+    tile.className = "tile";
+    tile.style.animationDelay = (i < 18 ? i * 22 : 0) + "ms";
 
     var shot = document.createElement("div");
-    shot.className = "card__shot";
+    shot.className = "tile__shot";
+    shot.title = "Open " + w.name + " in Minecraft";
+    shot.onclick = function () { launch(w); };
     if (w.icon) {
       var img = document.createElement("img");
       img.loading = "lazy";
@@ -544,41 +562,38 @@ function draw() {
     }
 
     var chips = document.createElement("div");
-    chips.className = "card__chips";
+    chips.className = "chips";
     if (w.mode) chips.innerHTML = '<span class="chip">' + w.mode + "</span>";
     if (w.installed) chips.innerHTML += '<span class="chip chip--ai">AI</span>';
     shot.appendChild(chips);
 
-    var play = document.createElement("div");
-    play.className = "card__play";
-    play.innerHTML = "<span>" + ICON_PLAY + "Play</span>";
-    shot.appendChild(play);
+    var base = document.createElement("div");
+    base.className = "tile__base";
 
-    var body = document.createElement("div");
-    body.className = "card__body";
     var text = document.createElement("div");
-    text.className = "card__text";
+    text.className = "tile__text";
+    text.title = "Open " + w.name + " in Minecraft";
+    text.onclick = function () { launch(w); };
     var nm = document.createElement("div");
-    nm.className = "card__name";
+    nm.className = "tile__name";
     nm.textContent = w.name;
-    var meta = document.createElement("div");
-    meta.className = "card__meta";
-    meta.textContent = shortDate(w.played);
+    var dt = document.createElement("div");
+    dt.className = "tile__date";
+    dt.textContent = shortDate(w.played);
     text.appendChild(nm);
-    text.appendChild(meta);
+    text.appendChild(dt);
 
-    var edit = document.createElement("button");
-    edit.className = "iconbtn";
-    edit.innerHTML = ICON_PENCIL;
-    edit.title = w.installed ? "AI installed — reinstall" : "Install the AI into this world";
-    if (w.installed) edit.style.color = "var(--green)";
-    edit.onclick = function (ev) { ev.stopPropagation(); ask(w); };
+    var get = document.createElement("button");
+    get.className = "get" + (w.installed ? " has" : "");
+    get.innerHTML = w.installed ? ICON_TICK : ICON_GET;
+    get.title = w.installed ? "AI installed — install again to update" : "Install the AI into this world";
+    get.onclick = function (ev) { ev.stopPropagation(); ask(w); };
 
-    body.appendChild(text);
-    body.appendChild(edit);
-    card.appendChild(shot);
-    card.appendChild(body);
-    grid.appendChild(card);
+    base.appendChild(text);
+    base.appendChild(get);
+    tile.appendChild(shot);
+    tile.appendChild(base);
+    grid.appendChild(tile);
   });
   grid.parentNode.scrollTop = keep;
 }
@@ -589,14 +604,14 @@ var pending = null;
 
 function ask(w) {
   pending = w;
-  var shot = document.getElementById("dlgShot");
-  shot.style.backgroundImage = w.icon ? "url(" + iconUrl(w) + ")" : "none";
+  document.getElementById("dlgShot").style.backgroundImage =
+    w.icon ? "url(" + iconUrl(w) + ")" : "none";
   document.getElementById("dlgTitle").textContent =
     (w.installed ? "Reinstall the AI in " : "Install the AI in ") + w.name + "?";
   document.getElementById("dlgNote").textContent = w.installed
-    ? "The AI is already in this world. Reinstalling refreshes it to the newest version."
+    ? "The AI is already in this world. Installing again refreshes it to the newest version."
     : "This adds the Bedrock AI behaviour pack to this world. Nothing else in the world changes.";
-  document.getElementById("dlgYes").textContent = w.installed ? "Reinstall" : "Install";
+  document.getElementById("dlgYes").textContent = w.installed ? "Update" : "Install";
   scrim.className = "scrim open";
 }
 
@@ -614,7 +629,7 @@ document.getElementById("dlgYes").onclick = function () {
   var label = btn.textContent;
   btn.disabled = true;
   btn.innerHTML = '<svg class="spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>Installing';
+    'stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>Installing';
   fetch("/install?root=" + w.root + "&world=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
@@ -668,6 +683,7 @@ function loadWorlds() {
 
 search.oninput = draw;
 account.onchange = function () { grid.parentNode.scrollTop = 0; draw(); };
+
 var rescanBtn = document.getElementById("rescan");
 rescanBtn.onclick = function () {
   if (busy) return;
@@ -677,20 +693,18 @@ rescanBtn.onclick = function () {
   rescanBtn.disabled = true;
   var started = Date.now();
   loadRoots().then(loadWorlds).then(function () {
-    // let the spin be visible even when the scan is instant
-    var wait = Math.max(0, 550 - (Date.now() - started));
+    // hold the spin long enough to read, even when the scan is instant
     setTimeout(function () {
       icon.classList.remove("spinning");
       rescanBtn.disabled = false;
       busy = false;
       say(allWorlds.length + " worlds found", true);
-    }, wait);
+    }, Math.max(0, 550 - (Date.now() - started)));
   });
 };
 
 document.getElementById("copy").onclick = function () {
   var text = document.getElementById("cmd").textContent;
-  var btn = this;
   function done() { say("Command copied", true); }
   function fallback() {
     var t = document.createElement("textarea");
@@ -708,39 +722,31 @@ function render(s) {
   document.getElementById("cmd").textContent = "/connect localhost:" + s.port;
   document.getElementById("engine").textContent = s.provider ? s.provider + " · " + s.model : "starting…";
 
-  var dot = document.getElementById("dot");
+  var lamp = document.getElementById("lamp");
   var status = document.getElementById("status");
-  var meta = document.getElementById("statusMeta");
+  var sub = document.getElementById("statusSub");
 
   if (s.apiKeyMissing) {
-    dot.className = "dot bad";
+    lamp.className = "lamp bad";
     status.textContent = "No API key";
-    meta.textContent = "Add your key to config.json, then start the app again.";
+    sub.textContent = "add it to config.json";
   } else if (s.minecraft) {
-    dot.className = "dot ok";
+    lamp.className = "lamp ok";
     status.textContent = "Connected";
-    meta.textContent = s.player ? "Playing as " + s.player : "Type ai hello in chat.";
+    sub.textContent = s.player ? s.player : "type ai hello in chat";
   } else {
-    dot.className = "dot wait";
+    lamp.className = "lamp wait";
     status.textContent = "Waiting";
-    meta.textContent = "Open a world, then paste the connect command in chat.";
+    sub.textContent = "paste the connect command";
   }
 
-  var facts = document.getElementById("facts");
   var long = document.getElementById("factsLong");
   if (!s.facts) {
-    facts.hidden = true;
     long.textContent = "Nothing yet. Ask the AI something once you are connected.";
   } else if (s.facts.ok) {
-    facts.hidden = false;
-    facts.className = "status__facts ok";
-    facts.textContent = s.facts.count + " of " + s.facts.total + " world facts";
     long.textContent = s.facts.count + " of " + s.facts.total +
       " facts are arriving from the world, so the AI can see your health, inventory, biome and more.";
   } else {
-    facts.hidden = false;
-    facts.className = "status__facts bad";
-    facts.textContent = "No world data";
     long.textContent = "No live data is arriving. Install the AI into the world you are playing.";
   }
 
@@ -752,9 +758,9 @@ function render(s) {
 var es = new EventSource("/events");
 es.onmessage = function (e) { render(JSON.parse(e.data)); };
 es.onerror = function () {
-  document.getElementById("dot").className = "dot bad";
+  document.getElementById("lamp").className = "lamp bad";
   document.getElementById("status").textContent = "Stopped";
-  document.getElementById("statusMeta").textContent = "Close this window and start the app again.";
+  document.getElementById("statusSub").textContent = "restart the app";
 };
 
 skeletons(12);
