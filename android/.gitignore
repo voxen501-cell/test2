@@ -1,0 +1,13 @@
+# fetched by fetch-node.js, about 60 MB each
+app/src/main/jniLibs/
+app/src/main/cpp/include/
+
+# copied from _aichat_server by pack-bridge.js
+app/src/main/assets/
+
+build/
+app/build/
+.gradle/
+local.properties
+*.log
+.cxx/

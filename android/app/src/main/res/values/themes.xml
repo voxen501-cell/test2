@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.BedrockAI" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:statusBarColor">#0B0C0E</item>
+        <item name="android:navigationBarColor">#0B0C0E</item>
+    </style>
+</resources>
