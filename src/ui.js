@@ -274,11 +274,16 @@ function createUi(cfg, onIdle, onRestart) {
 // Opens the page as its own window, so it reads as an app and not a browser
 // tab. Edge is always present on Windows; the plain browser is the fallback.
 function openWindow(url) {
-  const attempts = [
-    ["cmd", ["/c", "start", "", "msedge", "--app=" + url]],
-    ["cmd", ["/c", "start", "", "chrome", "--app=" + url]],
-    ["cmd", ["/c", "start", "", url]],
-  ];
+  const attempts = process.platform === "win32"
+    ? [
+        ["cmd", ["/c", "start", "", "msedge", "--app=" + url]],
+        ["cmd", ["/c", "start", "", "chrome", "--app=" + url]],
+        ["cmd", ["/c", "start", "", url]],
+      ]
+    : process.platform === "darwin"
+      ? [["open", [url]]]
+      // Termux on a phone, then a desktop Linux, then nothing
+      : [["termux-open-url", [url]], ["xdg-open", [url]]];
   let i = 0;
   const tryNext = () => {
     if (i >= attempts.length) return;

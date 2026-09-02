@@ -168,11 +168,17 @@ function iconPath(rootIndex, worldId) {
 // is the world folder name.
 function launchWorld(worldId) {
   const uri = "minecraft://?load=" + encodeURIComponent(worldId);
-  const child = spawn("cmd", ["/c", "start", "", uri], {
+  const opener = process.platform === "win32"
+    ? ["cmd", ["/c", "start", "", uri]]
+    : process.platform === "darwin"
+      ? ["open", [uri]]
+      : ["termux-open-url", [uri]];
+  const child = spawn(opener[0], opener[1], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
   });
+  child.on("error", () => {});
   child.unref();
   return uri;
 }

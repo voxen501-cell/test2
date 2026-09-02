@@ -702,7 +702,13 @@ function start() {
   // AICHAT_NO_WINDOW keeps the test suite from spawning browser windows.
   if (!platform && !process.env.AICHAT_NO_WINDOW) {
     const url = "http://localhost:" + cfg.port + "/";
-    log("Opening the app window at " + url);
+    if (process.platform === "win32") {
+      log("Opening the app window at " + url);
+    } else {
+      // on a phone under Termux there may be no browser to hand it to, so the
+      // address has to be readable in the terminal
+      log("Open this in a browser to use the app:  " + url);
+    }
     setTimeout(() => openWindow(url), 300);
   }
 
