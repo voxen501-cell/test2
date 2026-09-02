@@ -1,376 +1,293 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VoxenMC - AI Companion</title>
+<title>Bedrock AI</title>
+<link rel="icon" href="/ui/logo.png">
 <style>
-/* Monocraft is served from inside the app, nothing is fetched at runtime. */
-@font-face{
-  font-family:"Monocraft";
-  src:url("/font/monocraft.ttf") format("truetype");
-  font-weight:400 600;
-  font-display:swap;
-}
-@font-face{
-  font-family:"Monocraft";
-  src:url("/font/monocraft-bold.ttf") format("truetype");
-  font-weight:700 900;
-  font-display:swap;
-}
+/* Minecraft's menus are HTML rendered by Gameface, so the look comes from
+   nine-slice border-image frames plus the Minecraft fonts. These are the
+   game's own pieces, used the same way the game uses them. */
+@font-face{font-family:"Minecraft Seven";src:url("/font/seven.otf") format("opentype");font-display:block}
+@font-face{font-family:"Minecraft Ten";src:url("/font/ten.otf") format("opentype");font-display:block}
 
 :root{
-  --bg:#1E1F20;
-  --panel:#313233;
-  --panel-2:#3A3B3C;
-  --panel-3:#48494A;
-  --stroke:rgba(0,0,0,.6);
-  --drop:0 4px 0 rgba(0,0,0,.32);
-  --drop-lift:0 7px 0 rgba(0,0,0,.32);
+  /* straight out of the game's menus theme */
+  --primary:#3c8527;
+  --secondary:#d0d1d4;
+  --destructive:#ca3636;
+  --muted0:#d0d1d4;
+  --muted1:#b1b2b5;
+  --gray10:#1e1e1f;
+  --gray20:#232325;
+  --gray30:#313133;
+  --gray40:#48484a;
+  --gray50:#58585a;
+  --gray60:#8c8d90;
+  --caret:#6cc349;
 
-  --ink:#FFFFFF;
-  --ink-2:#C8C9CA;
-  --ink-3:#8E8F90;
-
-  --green:#51A332;      --green-hi:#5CB63A;   --green-lite:#7FD34A;
-  --green-lo:#135D0B;   --green-press:#3E8526;
-  --green-mid:#6BC24A;  --green-corner:#C3E878;
-
-  --btn3:#4A4B4C;       --btn3-hi:#565758;    --btn3-lite:#6E6F70;
-  --btn3-lo:#232425;    --btn3-press:#3A3B3C;
-  --btn3-mid:#646566;   --btn3-corner:#8A8B8C;
-
-  --red:#BE2418;        --gold:#C9962B;       --gold-ink:#E4C77E;
-
-  --in-bg:#232425;      --in-top:#141516;     --in-bot:#3F4041;
-  --focus:#FFFFFF;
-
-  --pixel:"Monocraft","Courier New",monospace;
-  --sans:"Noto Sans","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --ui:"Minecraft Seven","Segoe UI",sans-serif;
+  --title:"Minecraft Ten","Minecraft Seven","Segoe UI",sans-serif;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;margin:0}
 body{
-  margin:0;color:var(--ink);
-  font-family:var(--sans);font-size:14px;line-height:1.55;
-  padding:16px 18px;
+  color:#fff;font-family:var(--ui);font-size:14px;line-height:1.5;
   display:flex;flex-direction:column;overflow:hidden;
-  /* the game's own panorama, blurred and dimmed, held still behind the page */
-  background:var(--bg) url("/ui/bg.jpg") center/cover fixed no-repeat;
+  background:#101011 url("/ui/bg.jpg") center/cover fixed no-repeat;
 }
-body::before{
-  content:"";position:fixed;inset:0;z-index:-1;
-  background:linear-gradient(rgba(20,21,22,.55),rgba(20,21,22,.78));
-}
-.panel{backdrop-filter:blur(2px)}
-.shell{
-  flex:1;min-height:0;width:100%;
-  display:grid;gap:14px;
-  grid-template-columns:minmax(0,1fr) 330px;
-  grid-template-rows:auto minmax(0,1fr);
-  grid-template-areas:"head head" "worlds side";
-}
-.topbar{grid-area:head;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
-.panel--worlds{grid-area:worlds;display:flex;flex-direction:column;min-height:0;margin-bottom:0}
-.side{grid-area:side;display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;padding-right:2px}
-.side .panel{margin-bottom:0}
-@media (max-width:900px){
-  .shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "worlds" "side";overflow-y:auto}
-  .panel--worlds{min-height:340px}
-}
+body::before{content:"";position:fixed;inset:0;background:rgba(16,16,17,.5);z-index:-1}
 
-/* ---- brand ---- */
-.brand{display:flex;align-items:center;gap:11px;margin-bottom:3px}
-.brand__mark{
-  width:30px;height:30px;display:grid;place-items:center;
-  background:var(--green);border:3px solid #000;padding-bottom:4px;
-  box-shadow:
-    inset 0 -5px 0 0 var(--green-lo), inset 0 -7px 0 0 var(--green-mid),
-    inset 0  2px 0 0 var(--green-lite), inset  2px 0 0 0 var(--green-lite),
-    inset -2px 0 0 0 var(--green-lite);
+/* ---- header ---- */
+.hdr{
+  flex:none;display:flex;align-items:center;gap:12px;
+  background:#f4f5f5;color:#1e1e1f;border-bottom:2px solid #c9cacc;
+  padding:7px 14px;
 }
-.brand__mark svg{width:14px;height:14px;fill:#fff;margin-bottom:-3px}
-.brand__name{font-family:var(--pixel);font-weight:700;font-size:19px;letter-spacing:.02em}
-.brand__name span{color:var(--green-mid)}
-.tagline{color:var(--ink-3);font-size:12px;margin:0 0 16px;font-family:var(--pixel)}
+.hdr__logo{width:30px;height:30px;flex:none;image-rendering:auto}
+.hdr__name{font-family:var(--title);font-size:15px;letter-spacing:.02em}
+.hdr__spacer{flex:1}
+.hdr__state{display:flex;align-items:center;gap:8px;font-size:12px}
+.led{width:11px;height:11px;flex:none;background:var(--gray50)}
+.led.ok{background:var(--primary)}
+.led.wait{background:#c9962b}
+.led.bad{background:var(--destructive)}
+.hdr__engine{font-size:11px;color:#58585a}
 
-/* ---- panels ---- */
-.panel{
-  background:var(--panel);border:2px solid var(--stroke);
-  box-shadow:var(--drop);margin-bottom:16px;padding:16px 18px 18px;
+/* ---- tabs ---- */
+.tabs{flex:none;display:flex;gap:4px;padding:10px 14px 0}
+.tab{
+  flex:1;background:rgba(35,35,37,.88);color:var(--muted0);
+  border:0;border-bottom:3px solid transparent;padding:10px 8px 8px;
+  font-family:var(--ui);font-size:13px;cursor:pointer;
 }
-.panel__head{
-  font-family:var(--pixel);font-weight:700;font-size:13px;
-  text-transform:uppercase;letter-spacing:.03em;color:var(--ink-2);
-  margin-bottom:12px;display:flex;align-items:center;gap:10px;
-}
-.panel__head .count{color:var(--ink-3);font-weight:400}
-.panel__head .spacer{margin-left:auto}
+.tab:hover{background:rgba(72,72,74,.9);color:#fff}
+.tab.on{background:rgba(48,48,50,.95);color:#fff;border-bottom-color:#fff}
+.tab .n{color:var(--muted1);font-size:12px}
 
-/* ---- status ---- */
-.state{display:flex;align-items:center;gap:11px}
-.led{width:12px;height:12px;flex:none;background:var(--ink-3);border:2px solid #000}
-.led.ok{background:var(--green-lite);box-shadow:0 0 10px rgba(127,211,74,.55)}
-.led.wait{background:var(--gold)}
-.led.bad{background:var(--red)}
-.state__text{font-family:var(--pixel);font-weight:700;font-size:15px}
-.hint{color:var(--ink-3);font-size:12.5px;margin-top:7px}
-.facts{font-size:12.5px;margin-top:6px;color:var(--ink-3)}
-.facts.ok{color:var(--green-mid)}
-.facts.bad{color:var(--gold-ink)}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;padding:11px 14px 12px}
+.view{flex:1;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+.toolbar{flex:none;display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 
-/* ---- Ore UI button plate ---- */
+/* ---- pressable: the game's button ---- */
 .btn{
-  --e:3px; --lip:6px;
-  --b:var(--green); --b-hi:var(--green-hi); --b-lite:var(--green-lite);
-  --b-mid:var(--green-mid); --b-lo:var(--green-lo); --b-press:var(--green-press);
-  --b-corner:var(--green-corner); --b-ink:#FFFFFF;
-  --b-shadow:2px 2px 0 rgba(0,0,0,.45);
+  font-family:var(--ui);font-size:13px;color:#fff;line-height:1;
+  padding:11px 18px;border:4px solid transparent;background:transparent;
+  border-image:url("/ui/btn_primary.png") 2 2 2 2 fill / 4px;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  text-shadow:2px 2px 0 rgba(0,0,0,.35);
+}
+.btn:hover{border-image-source:url("/ui/btn_primary_hover.png")}
+.btn:active{border-image-source:url("/ui/btn_primary_press.png")}
+.btn--sec{color:#1e1e1f;text-shadow:none;border-image-source:url("/ui/btn_secondary.png")}
+.btn--sec:hover{border-image-source:url("/ui/btn_secondary_hover.png")}
+.btn--sec:active{border-image-source:url("/ui/btn_secondary_press.png")}
+.btn[disabled]{opacity:.5;cursor:not-allowed;pointer-events:none}
 
-  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:9px;
-  padding:11px 20px 16px;margin-bottom:4px;
-  font-family:var(--pixel);font-size:13px;font-weight:700;line-height:1;
-  text-transform:uppercase;text-align:center;
-  color:var(--b-ink);text-shadow:var(--b-shadow);
-  background:var(--b);border:4px solid #000;outline:3px solid transparent;
-  box-shadow:
-    inset 0 calc(-1 * var(--lip))              0 0 var(--b-lo),
-    inset 0 calc(-1 * (var(--lip) + var(--e))) 0 0 var(--b-mid),
-    inset 0 var(--e)                           0 0 var(--b-lite),
-    inset var(--e) 0                           0 0 var(--b-lite),
-    inset calc(-1 * var(--e)) 0                0 0 var(--b-lite);
-  cursor:pointer;user-select:none;
-  transition:background .1s linear, outline-color .1s linear, transform .06s linear;
+/* ---- sunken field ---- */
+.field{
+  font-family:var(--ui);font-size:13px;color:#fff;background:transparent;
+  border:2px solid transparent;border-top-width:6px;
+  border-image:url("/ui/field.png") 3 1 1 1 fill / 6px 2px 2px 2px;
+  padding:8px 10px;outline:0;caret-color:var(--caret);
 }
-.btn::before{
-  content:"";position:absolute;left:0;right:0;top:0;bottom:var(--lip);
-  background-image:
-    linear-gradient(var(--b-corner),var(--b-corner)),
-    linear-gradient(var(--b-corner),var(--b-corner)),
-    linear-gradient(var(--b-corner),var(--b-corner)),
-    linear-gradient(var(--b-corner),var(--b-corner));
-  background-size:var(--e) var(--e);
-  background-position:0 0, 100% 0, 0 100%, 100% 100%;
-  background-repeat:no-repeat;pointer-events:none;
+.field::placeholder{color:var(--muted1)}
+select.field{
+  cursor:pointer;padding-right:26px;-webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(#fff,#fff),linear-gradient(#fff,#fff),linear-gradient(#fff,#fff);
+  background-size:3px 3px;background-repeat:no-repeat;
+  background-position:calc(100% - 15px) calc(50% - 1px),calc(100% - 12px) calc(50% + 2px),calc(100% - 9px) calc(50% - 1px);
 }
-.btn:hover{background:var(--b-hi);outline-color:var(--focus)}
-.btn:active{--lip:3px;background:var(--b-press);transform:translateY(var(--e))}
-.btn[disabled]{
-  --b:#C9CBD1;--b-hi:#C9CBD1;--b-lite:#C9CBD1;--b-mid:#C9CBD1;
-  --b-lo:#C9CBD1;--b-corner:#C9CBD1;--b-ink:#6E6F70;--b-shadow:none;
-  border-color:#555;cursor:not-allowed;pointer-events:none;
-}
-.btn--dark{
-  --b:var(--btn3);--b-hi:var(--btn3-hi);--b-lite:var(--btn3-lite);
-  --b-mid:var(--btn3-mid);--b-lo:var(--btn3-lo);--b-press:var(--btn3-press);
-  --b-corner:var(--btn3-corner);--b-ink:var(--ink);--b-shadow:none;
-}
-.btn--sm{--e:2px;--lip:4px;padding:8px 13px 11px;font-size:11px;border-width:3px}
+select.field option{background:var(--gray30);color:#fff}
+#search{flex:1;min-width:150px}
+#account{min-width:168px}
 
-/* ---- world grid, laid out like the Play screen ---- */
-.worlds{
-  display:grid;gap:12px;
-  grid-template-columns:repeat(auto-fill,minmax(178px,1fr));
-  flex:1;min-height:0;overflow-y:auto;padding-right:6px;align-content:start;
+/* ---- world grid ---- */
+.grid{
+  flex:1;min-height:0;overflow-y:auto;align-content:start;
+  display:grid;gap:10px;padding-right:6px;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
 }
-.world{
-  background:var(--panel-2);border:2px solid var(--stroke);box-shadow:var(--drop);
-  display:flex;flex-direction:column;margin-bottom:4px;
-  transition:transform .1s linear, box-shadow .1s linear;
+.card{
+  border:0 solid transparent;border-bottom-width:2px;
+  border-image:url("/ui/card.png") 0 1 2 1 fill / 0 2px 4px 2px;
+  display:flex;flex-direction:column;
 }
-.world:hover{transform:translateY(-3px);box-shadow:var(--drop-lift)}
-.world__shot{
-  position:relative;aspect-ratio:16/9;background:var(--in-bg);
-  background-size:cover;background-position:center;cursor:pointer;
-  image-rendering:auto;
+.card__shot{position:relative;aspect-ratio:16/9;cursor:pointer;background:#000 center/cover no-repeat}
+.card__shot.blank{
+  background-image:url("/ui/world.png");background-size:36px;
+  background-color:var(--gray20);image-rendering:pixelated;
 }
-.world__shot.blank{
-  background-image:url("/ui/world.png");
-  background-size:34px;background-repeat:no-repeat;
-  image-rendering:pixelated;opacity:.75;
+.card__mode{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.6);padding:2px 7px 3px;font-size:11px}
+.card__ai{position:absolute;right:0;top:0;background:var(--primary);padding:2px 7px 3px;font-size:11px}
+.card__row{display:flex;align-items:stretch;min-height:46px}
+.card__main{
+  flex:1;min-width:0;cursor:pointer;padding:7px 10px;text-align:left;
+  border:4px solid transparent;
+  border-image:url("/ui/card_action.png") 2 2 2 2 fill / 4px;
+  font-family:var(--ui);color:#fff;
 }
-.world__mode{
-  position:absolute;left:0;bottom:0;
-  background:rgba(0,0,0,.55);color:#fff;
-  font-family:var(--pixel);font-size:11px;padding:3px 7px 4px;
-}
-.world__tag{
-  position:absolute;right:0;top:0;
-  background:var(--green);color:#fff;border-left:2px solid #000;border-bottom:2px solid #000;
-  font-family:var(--pixel);font-size:10px;padding:3px 7px 4px;
-}
-.world__foot{display:flex;align-items:stretch;border-top:2px solid var(--stroke)}
-.world__meta{flex:1;min-width:0;padding:8px 10px;cursor:pointer}
-.world__name{
-  font-family:var(--pixel);font-size:13px;font-weight:700;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.world__date{color:var(--ink-3);font-size:11px;font-family:var(--pixel)}
-.pencil{
-  flex:none;width:46px;border:0;border-left:2px solid var(--stroke);
-  background:var(--panel-3);color:var(--ink);cursor:pointer;
+.card__main:hover{border-image-source:url("/ui/card_action_hover.png")}
+.card__main:active{border-image-source:url("/ui/card_action_press.png")}
+.card__name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card__date{font-size:11px;color:var(--muted1)}
+.card__edit{
+  flex:none;width:46px;cursor:pointer;background:transparent;
+  border:4px solid transparent;
+  border-image:url("/ui/pencil_btn.png") 2 2 2 2 fill / 4px;
   display:grid;place-items:center;
-  transition:background .1s linear;
 }
-.pencil:hover{background:var(--green)}
-.pencil img{
-  width:18px;height:16px;
-  image-rendering:pixelated;
-  /* the texture is white; dim it until the button is hovered */
-  opacity:.82;transition:opacity .1s linear;
-}
-.pencil:hover img{opacity:1}
-.pencil[disabled]{cursor:not-allowed;color:var(--ink-3)}
-.pencil.done{background:var(--green)}
+.card__edit:hover{border-image-source:url("/ui/pencil_btn_hover.png")}
+.card__edit:active{border-image-source:url("/ui/pencil_btn_press.png")}
+.card__edit img{width:18px;height:16px;image-rendering:pixelated}
 
-.empty{color:var(--ink-3);font-size:12.5px;padding:14px 0}
-#account{min-width:170px;cursor:pointer}
-.search{
-  background:var(--in-bg);border:3px solid #000;
-  box-shadow:inset 0 3px 0 0 var(--in-top), inset 0 -3px 0 0 var(--in-bot);
-  color:var(--ink);padding:9px 12px;font-family:var(--sans);font-size:13px;
-  outline:3px solid transparent;width:190px;margin-bottom:3px;
-}
-.search:focus{outline-color:var(--focus)}
-.search::placeholder{color:var(--ink-3)}
+/* ---- chunky scrollbars ---- */
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-track{background:rgba(30,30,31,.7)}
+::-webkit-scrollbar-thumb{background:var(--gray60)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted0)}
 
+.panel{background:rgba(48,48,50,.92);padding:16px 18px;margin-bottom:10px}
+.panel h2{font-family:var(--title);font-size:12px;margin:0 0 11px;font-weight:400}
 .cmd{
-  display:block;padding:13px;margin-bottom:3px;
-  background:var(--in-bg);border:3px solid #000;
-  box-shadow:inset 0 3px 0 0 var(--in-top), inset 0 -3px 0 0 var(--in-bot);
-  font-family:var(--pixel);font-size:15px;font-weight:700;
-  color:var(--green-lite);user-select:all;word-break:break-all;
+  display:block;padding:11px 12px;margin-bottom:11px;
+  border:2px solid transparent;border-top-width:6px;
+  border-image:url("/ui/field.png") 3 1 1 1 fill / 6px 2px 2px 2px;
+  font-family:var(--ui);font-size:15px;color:var(--caret);user-select:all;
 }
-.row{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
-.msg{font-size:12.5px;margin-top:10px;color:var(--ink-3);min-height:18px}
-.msg.good{color:var(--green-mid)}
-.msg.bad{color:var(--gold-ink)}
-.steps{margin:13px 0 0;padding-left:20px;color:var(--ink-3);font-size:12.5px}
+.steps{margin:12px 0 0;padding-left:19px;color:var(--muted1);font-size:12.5px}
 .steps li{margin:5px 0}
-.steps b{color:var(--ink-2);font-weight:600}
-
+.steps b{color:#fff}
+.note{color:var(--muted1);font-size:12.5px;min-height:18px}
+.note.good{color:var(--caret)}
+.note.bad{color:#e9a13b}
 #log{
-  height:130px;overflow:auto;padding:11px 13px;
-  background:var(--in-bg);border:3px solid #000;
-  box-shadow:inset 0 3px 0 0 var(--in-top), inset 0 -3px 0 0 var(--in-bot);
-  font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;line-height:1.6;
-  color:var(--ink-3);white-space:pre-wrap;
+  flex:1;min-height:0;overflow:auto;padding:11px 12px;background:rgba(30,30,31,.85);
+  font-family:Consolas,monospace;font-size:11.5px;line-height:1.6;
+  color:var(--muted1);white-space:pre-wrap;
 }
-.foot{color:var(--ink-3);font-size:11px;text-align:center;margin-top:18px;font-family:var(--pixel)}
+.empty{color:var(--muted1);font-size:13px;padding:16px 0;grid-column:1/-1}
+.foot{flex:none;text-align:center;font-size:11px;padding-top:8px;color:var(--muted1)}
 
-/* ---- confirm dialog, shaped like the game's own ---- */
-.scrim{
-  position:fixed;inset:0;background:rgba(0,0,0,.62);
-  display:none;place-items:center;z-index:50;padding:20px;
-}
+/* ---- dialog ---- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:50;padding:20px}
 .scrim.open{display:grid}
-.dialog{
-  background:var(--panel);border:2px solid var(--stroke);box-shadow:0 6px 0 rgba(0,0,0,.4);
-  width:min(420px,100%);padding:0;
-}
-.dialog__bar{
-  background:var(--panel-3);border-bottom:2px solid var(--stroke);
-  padding:11px 16px;font-family:var(--pixel);font-weight:700;font-size:13px;
-  text-transform:uppercase;letter-spacing:.03em;
-}
-.dialog__body{padding:18px 16px}
-.dialog__shot{
-  width:100%;aspect-ratio:16/9;background:var(--in-bg) center/cover no-repeat;
-  border:2px solid var(--stroke);margin-bottom:13px;
-}
-.dialog__q{font-family:var(--pixel);font-size:14px;font-weight:700;margin-bottom:6px}
-.dialog__note{color:var(--ink-3);font-size:12.5px}
-.dialog__row{display:flex;gap:10px;justify-content:flex-end;padding:0 16px 16px}
+.dlg{background:var(--gray30);width:min(420px,100%);border:2px solid #000}
+.dlg__bar{background:#f4f5f5;color:#1e1e1f;padding:9px 14px;font-family:var(--title);font-size:12px;text-align:center}
+.dlg__body{padding:16px}
+.dlg__shot{width:100%;aspect-ratio:16/9;background:var(--gray20) center/cover no-repeat;margin-bottom:12px}
+.dlg__q{font-size:14px;margin-bottom:6px}
+.dlg__note{color:var(--muted1);font-size:12.5px}
+.dlg__row{display:flex;gap:9px;justify-content:flex-end;padding:0 16px 16px}
 </style>
 </head>
 <body>
-<div class="shell">
 
-  <div class="topbar">
-  <div>
-  <div class="brand">
-    <span class="brand__mark">
-      <svg viewBox="0 0 8 8" role="img" aria-label="VoxenMC">
-        <rect x="0" y="0" width="2" height="2"/><rect x="6" y="0" width="2" height="2"/>
-        <rect x="1" y="2" width="2" height="2"/><rect x="5" y="2" width="2" height="2"/>
-        <rect x="2" y="4" width="4" height="2"/><rect x="3" y="6" width="2" height="2"/>
-      </svg>
-    </span>
-    <span class="brand__name">Voxen<span>MC</span></span>
-  </div>
-  <p class="tagline" id="engine">AI Companion &middot; starting&hellip;</p>
-  </div>
-  <div class="panel" style="margin:0 0 0 auto;padding:12px 16px 14px">
-    <div class="state">
-      <span class="led" id="led"></span>
-      <span class="state__text" id="status">Starting</span>
+<div class="hdr">
+  <img class="hdr__logo" src="/ui/logo.png" alt="">
+  <span class="hdr__name">BEDROCK AI</span>
+  <span class="hdr__spacer"></span>
+  <span class="hdr__engine" id="engine">starting</span>
+  <span class="hdr__state"><span class="led" id="led"></span><span id="status">Starting</span></span>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-view="worlds">Worlds <span class="n" id="tabCount"></span></button>
+  <button class="tab" data-view="connect">Connect</button>
+  <button class="tab" data-view="activity">Activity</button>
+</div>
+
+<div class="body">
+
+  <div class="view on" id="view-worlds">
+    <div class="toolbar">
+      <select class="field" id="account" title="Show one account's worlds"></select>
+      <input class="field" id="search" type="text" placeholder="Search worlds" autocomplete="off">
+      <button class="btn btn--sec" id="rescan">Refresh</button>
     </div>
-    <div class="hint" id="hint">Setting things up&hellip;</div>
-    <div class="facts" id="facts"></div>
-  </div>
-  </div>
-
-  <div class="panel panel--worlds">
-    <div class="panel__head">
-      Your worlds <span class="count" id="worldCount"></span>
-      <span class="spacer"></span>
-      <select class="search" id="account" title="Show worlds from one account"></select>
-      <input class="search" id="search" type="text" placeholder="Search worlds" autocomplete="off">
-    </div>
-    <div class="worlds" id="worlds"><div class="empty">Looking for Minecraft&hellip;</div></div>
-    <div class="msg" id="installMsg">Click a world to open it. Click the pencil to install the AI into it.</div>
+    <div class="grid" id="grid"><div class="empty">Looking for Minecraft&hellip;</div></div>
+    <div class="foot" id="hint">Click a world to open it. Click the pencil to add the AI.</div>
   </div>
 
-  <div class="side">
-  <div class="panel">
-    <div class="panel__head">Then, in Minecraft chat</div>
-    <code class="cmd" id="cmd">/connect localhost:8080</code>
-    <div class="row" style="margin-top:11px">
+  <div class="view" id="view-connect">
+    <div class="panel">
+      <h2>IN MINECRAFT CHAT</h2>
+      <code class="cmd" id="cmd">/connect localhost:8080</code>
       <button class="btn" id="copy">Copy command</button>
-      <span class="hint" style="margin:0">Press <b>T</b> in game, then Ctrl+V, then Enter</span>
+      <ol class="steps">
+        <li>Open a world with <b>cheats on</b> &mdash; the Worlds tab opens one for you</li>
+        <li>Press <b>T</b>, paste with <b>Ctrl+V</b>, press <b>Enter</b></li>
+        <li>Type <b>ai hello</b> to talk</li>
+      </ol>
+      <p class="steps" style="padding:0;margin-top:12px">Minecraft has no way to run this from
+        outside the game, so it is pasted once per session. Opening a world from the Worlds tab
+        copies it for you.</p>
     </div>
-    <ol class="steps">
-      <li>The world must have <b>cheats on</b></li>
-      <li>Paste the command once per session</li>
-      <li>Type <b>ai hello</b> to talk</li>
-    </ol>
+    <div class="panel">
+      <h2>LIVE WORLD DATA</h2>
+      <div class="note" id="facts">Nothing yet.</div>
+    </div>
   </div>
 
-  <div class="panel">
-    <div class="panel__head">Activity</div>
+  <div class="view" id="view-activity">
     <div id="log">waiting&hellip;</div>
   </div>
 
-  <p class="foot">Not an official Minecraft product.<br>Not approved by or associated with Mojang or Microsoft.</p>
-  </div>
 </div>
 
 <div class="scrim" id="scrim">
-  <div class="dialog">
-    <div class="dialog__bar">Install AI</div>
-    <div class="dialog__body">
-      <div class="dialog__shot" id="dlgShot"></div>
-      <div class="dialog__q" id="dlgQ">Install the AI into this world?</div>
-      <div class="dialog__note" id="dlgNote"></div>
+  <div class="dlg">
+    <div class="dlg__bar">INSTALL AI</div>
+    <div class="dlg__body">
+      <div class="dlg__shot" id="dlgShot"></div>
+      <div class="dlg__q" id="dlgQ">Install the AI into this world?</div>
+      <div class="dlg__note" id="dlgNote"></div>
     </div>
-    <div class="dialog__row">
-      <button class="btn btn--dark" id="dlgNo">Cancel</button>
+    <div class="dlg__row">
+      <button class="btn btn--sec" id="dlgNo">Cancel</button>
       <button class="btn" id="dlgYes">Install</button>
     </div>
   </div>
 </div>
 
 <script>
+var grid = document.getElementById("grid");
 var logBox = document.getElementById("log");
-var grid = document.getElementById("worlds");
-var installMsg = document.getElementById("installMsg");
 var search = document.getElementById("search");
 var account = document.getElementById("account");
+var hint = document.getElementById("hint");
 var allWorlds = [];
-var roots = [];
 
-var PENCIL = '<img src="/ui/pencil.png" alt="Edit">';
+/* ---- interface sounds ---- */
+var SOUND = { click: new Audio("/ui/click.wav"), back: new Audio("/ui/back.wav") };
+for (var k in SOUND) SOUND[k].volume = 0.35;
+function beep(which) {
+  var a = SOUND[which || "click"];
+  try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
+}
+// every button in the app ticks, the way the game's do
+document.addEventListener("click", function (e) {
+  var el = e.target.closest ? e.target.closest("button,.card__shot") : null;
+  if (!el || el.disabled) return;
+  beep(el.id === "dlgNo" || el.id === "rescan" ? "back" : "click");
+}, true);
+
+/* ---- tabs ---- */
+Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+  t.onclick = function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (x) { x.className = "tab"; });
+    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (x) { x.className = "view"; });
+    t.className = "tab on";
+    document.getElementById("view-" + t.dataset.view).className = "view on";
+  };
+});
+
+function iconUrl(w) {
+  return "/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id);
+}
 
 function shortDate(ms) {
   var d = new Date(ms);
@@ -378,8 +295,13 @@ function shortDate(ms) {
   return p(d.getMonth() + 1) + "/" + p(d.getDate()) + "/" + String(d.getFullYear()).slice(2);
 }
 
+function say(text, good) {
+  hint.className = "foot note " + (good ? "good" : "bad");
+  hint.textContent = text;
+}
+
 function draw() {
-  var keepScroll = grid.scrollTop;
+  var keep = grid.scrollTop;
   var q = search.value.trim().toLowerCase();
   var only = account.value;
 
@@ -387,106 +309,93 @@ function draw() {
   if (only !== "") list = list.filter(function (w) { return String(w.root) === only; });
   if (q) list = list.filter(function (w) { return w.name.toLowerCase().indexOf(q) >= 0; });
 
-  document.getElementById("worldCount").textContent =
-    "(" + list.length + (list.length !== allWorlds.length ? " of " + allWorlds.length : "") + ")";
+  document.getElementById("tabCount").textContent = "(" + list.length + ")";
 
   grid.innerHTML = "";
   if (!list.length) {
     var e = document.createElement("div");
     e.className = "empty";
-    e.textContent = allWorlds.length ? "No world matches that." : "No worlds found yet.";
+    e.textContent = allWorlds.length ? "No world matches that." : "No worlds found.";
     grid.appendChild(e);
     return;
   }
 
   list.forEach(function (w) {
     var card = document.createElement("div");
-    card.className = "world";
+    card.className = "card";
 
     var shot = document.createElement("div");
-    shot.className = "world__shot";
-    shot.title = "Open " + w.name + " in Minecraft";
-    if (w.icon) shot.style.backgroundImage = "url(/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id) + ")";
-    else shot.className += " blank";
+    shot.className = "card__shot" + (w.icon ? "" : " blank");
+    if (w.icon) shot.style.backgroundImage = "url(" + iconUrl(w) + ")";
+    shot.title = "Open " + w.name;
+    shot.onclick = function () { launch(w); };
     if (w.mode) {
       var m = document.createElement("span");
-      m.className = "world__mode";
+      m.className = "card__mode";
       m.textContent = w.mode;
       shot.appendChild(m);
     }
     if (w.installed) {
-      var t = document.createElement("span");
-      t.className = "world__tag";
-      t.textContent = "AI";
-      shot.appendChild(t);
+      var a = document.createElement("span");
+      a.className = "card__ai";
+      a.textContent = "AI";
+      shot.appendChild(a);
     }
-    shot.onclick = function () { launch(w); };
 
-    var foot = document.createElement("div");
-    foot.className = "world__foot";
+    var row = document.createElement("div");
+    row.className = "card__row";
 
-    var meta = document.createElement("div");
-    meta.className = "world__meta";
-    meta.title = "Open " + w.name + " in Minecraft";
-    meta.onclick = function () { launch(w); };
-    var name = document.createElement("div");
-    name.className = "world__name";
-    name.textContent = w.name;
-    var date = document.createElement("div");
-    date.className = "world__date";
-    date.textContent = shortDate(w.played);
-    meta.appendChild(name);
-    meta.appendChild(date);
+    var main = document.createElement("button");
+    main.className = "card__main";
+    main.title = "Open " + w.name;
+    main.onclick = function () { launch(w); };
+    var nm = document.createElement("div");
+    nm.className = "card__name";
+    nm.textContent = w.name;
+    var dt = document.createElement("div");
+    dt.className = "card__date";
+    dt.textContent = shortDate(w.played);
+    main.appendChild(nm);
+    main.appendChild(dt);
 
-    var pencil = document.createElement("button");
-    pencil.className = "pencil" + (w.installed ? " done" : "");
-    pencil.innerHTML = PENCIL;
-    pencil.title = w.installed ? "AI is installed - click to reinstall" : "Install the AI into this world";
-    pencil.onclick = function (ev) {
-      ev.stopPropagation();
-      askInstall(w);
-    };
+    var edit = document.createElement("button");
+    edit.className = "card__edit";
+    edit.title = w.installed ? "AI installed - click to reinstall" : "Install the AI here";
+    edit.innerHTML = '<img src="/ui/pencil.png" alt="Edit">';
+    edit.onclick = function (ev) { ev.stopPropagation(); ask(w); };
 
-    foot.appendChild(meta);
-    foot.appendChild(pencil);
+    row.appendChild(main);
+    row.appendChild(edit);
     card.appendChild(shot);
-    card.appendChild(foot);
+    card.appendChild(row);
     grid.appendChild(card);
   });
-  grid.scrollTop = keepScroll;
+  grid.scrollTop = keep;
 }
 
-function say(text, good) {
-  installMsg.className = "msg " + (good ? "good" : "bad");
-  installMsg.textContent = text;
-}
-
-// The pencil asks before it writes anything into a world.
+/* ---- ask before writing into a world ---- */
 var scrim = document.getElementById("scrim");
 var pending = null;
 
-function askInstall(w) {
+function ask(w) {
   pending = w;
   document.getElementById("dlgShot").style.backgroundImage =
-    w.icon ? "url(/world-icon?root=" + w.root + "&id=" + encodeURIComponent(w.id) + ")" : "url(/ui/world.png)";
+    "url(" + (w.icon ? iconUrl(w) : "/ui/world.png") + ")";
   document.getElementById("dlgQ").textContent =
     (w.installed ? "Reinstall the AI into " : "Install the AI into ") + w.name + "?";
   document.getElementById("dlgNote").textContent = w.installed
-    ? "The AI is already in this world. Reinstalling refreshes it to the newest version."
-    : "This adds the AI Companion behaviour pack to this world. Nothing else in the world is changed.";
+    ? "The AI is already here. Reinstalling refreshes it to the newest version."
+    : "This adds the AI Companion behaviour pack to this world. Nothing else changes.";
   document.getElementById("dlgYes").textContent = w.installed ? "Reinstall" : "Install";
   scrim.className = "scrim open";
 }
 
-function closeDialog() {
-  scrim.className = "scrim";
-  pending = null;
-}
+function closeDlg() { scrim.className = "scrim"; pending = null; }
 
-document.getElementById("dlgNo").onclick = closeDialog;
-scrim.onclick = function (e) { if (e.target === scrim) closeDialog(); };
+document.getElementById("dlgNo").onclick = closeDlg;
+scrim.onclick = function (e) { if (e.target === scrim) { beep("back"); closeDlg(); } };
 document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && pending) closeDialog();
+  if (e.key === "Escape" && pending) { beep("back"); closeDlg(); }
 });
 
 document.getElementById("dlgYes").onclick = function () {
@@ -494,14 +403,12 @@ document.getElementById("dlgYes").onclick = function () {
   if (!w) return;
   var btn = this;
   btn.disabled = true;
-  btn.textContent = "Installing";
   fetch("/install?root=" + w.root + "&world=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
       say(d.message, d.ok);
       btn.disabled = false;
-      btn.textContent = "Install";
-      closeDialog();
+      closeDlg();
       loadWorlds();
     });
 };
@@ -512,18 +419,34 @@ function launch(w) {
   fetch("/launch?world=" + encodeURIComponent(w.id))
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      say(d.ok ? "Opening " + w.name + ". The connect command is on your clipboard - press T, Ctrl+V, Enter." : d.message, d.ok);
+      say(d.ok ? "Opening " + w.name + ". Command copied - press T, Ctrl+V, Enter." : d.message, d.ok);
     });
 }
 
+/* ---- data ---- */
+function loadRoots() {
+  return fetch("/roots").then(function (r) { return r.json(); }).then(function (d) {
+    var keep = account.value;
+    account.innerHTML = "";
+    var total = 0;
+    d.roots.forEach(function (r) { total += r.count; });
+    account.appendChild(new Option("All accounts (" + total + ")", ""));
+    d.roots.forEach(function (r) {
+      account.appendChild(new Option(r.label + " (" + r.count + ")", String(r.index)));
+    });
+    account.value = keep;
+    if (account.selectedIndex < 0) account.selectedIndex = 0;
+  });
+}
+
 function loadWorlds() {
-  fetch("/worlds").then(function (r) { return r.json(); }).then(function (d) {
+  return fetch("/worlds").then(function (r) { return r.json(); }).then(function (d) {
     if (!d.found) {
       allWorlds = [];
       grid.innerHTML = "";
       var e = document.createElement("div");
       e.className = "empty";
-      e.textContent = "Minecraft not found. Open it once, then reopen this app.";
+      e.textContent = "Minecraft not found. Open it once, then press Refresh.";
       grid.appendChild(e);
       return;
     }
@@ -534,29 +457,14 @@ function loadWorlds() {
 
 search.oninput = draw;
 account.onchange = function () { grid.scrollTop = 0; draw(); };
-
-function loadRoots() {
-  return fetch("/roots").then(function (r) { return r.json(); }).then(function (d) {
-    roots = d.roots;
-    var keep = account.value;
-    account.innerHTML = "";
-    var total = 0;
-    roots.forEach(function (r) { total += r.count; });
-    account.appendChild(new Option("All accounts (" + total + ")", ""));
-    roots.forEach(function (r) {
-      account.appendChild(new Option(r.label + " (" + r.count + ")", String(r.index)));
-    });
-    account.value = keep;
-    if (account.selectedIndex < 0) account.selectedIndex = 0;
-  });
-}
+document.getElementById("rescan").onclick = function () { loadRoots().then(loadWorlds); };
 
 document.getElementById("copy").onclick = function () {
   var text = document.getElementById("cmd").textContent;
   var btn = this;
   function ok() {
     btn.textContent = "Copied";
-    setTimeout(function () { btn.textContent = "Copy command"; }, 1600);
+    setTimeout(function () { btn.textContent = "Copy command"; }, 1500);
   }
   function fallback() {
     var t = document.createElement("textarea");
@@ -572,37 +480,31 @@ document.getElementById("copy").onclick = function () {
 
 function render(s) {
   document.getElementById("cmd").textContent = "/connect localhost:" + s.port;
-  document.getElementById("engine").textContent =
-    s.provider ? "AI Companion · " + s.provider + " · " + s.model : "AI Companion · starting…";
+  document.getElementById("engine").textContent = s.provider ? s.provider + " · " + s.model : "starting";
 
   var led = document.getElementById("led");
   var status = document.getElementById("status");
-  var hint = document.getElementById("hint");
-
   if (s.apiKeyMissing) {
     led.className = "led bad";
     status.textContent = "No API key";
-    hint.textContent = "Open config.json next to this app, paste your key in, then start it again.";
   } else if (s.minecraft) {
     led.className = "led ok";
     status.textContent = s.player ? "Connected — " + s.player : "Connected";
-    hint.textContent = "Type  ai hello  in Minecraft chat.";
   } else {
     led.className = "led wait";
     status.textContent = "Waiting for Minecraft";
-    hint.textContent = "Open a world below, then paste the connect command into chat.";
   }
 
   var facts = document.getElementById("facts");
   if (!s.facts) {
-    facts.textContent = "";
-    facts.className = "facts";
+    facts.className = "note";
+    facts.textContent = "Nothing yet. Ask the AI something once you are connected.";
   } else if (s.facts.ok) {
-    facts.textContent = "Live world data: " + s.facts.count + " of " + s.facts.total + " facts";
-    facts.className = "facts ok";
+    facts.className = "note good";
+    facts.textContent = s.facts.count + " of " + s.facts.total + " facts arriving from the world.";
   } else {
-    facts.textContent = "Live world data missing - install the AI into this world";
-    facts.className = "facts bad";
+    facts.className = "note bad";
+    facts.textContent = "No live data. Install the AI into the world you are playing.";
   }
 
   var atBottom = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 24;
@@ -615,7 +517,6 @@ es.onmessage = function (e) { render(JSON.parse(e.data)); };
 es.onerror = function () {
   document.getElementById("led").className = "led bad";
   document.getElementById("status").textContent = "Bridge stopped";
-  document.getElementById("hint").textContent = "Close this window and start the app again.";
 };
 
 loadRoots().then(loadWorlds);

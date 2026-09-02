@@ -1,12 +1,12 @@
 {
-  "name": "ai-companion-bridge",
+  "name": "bedrock-ai",
   "version": "1.0.0",
-  "description": "Bridge between Minecraft Bedrock and an AI chat API",
+  "description": "Bedrock AI - talk to a real AI inside Minecraft Bedrock",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
     "test": "node run-tests.js",
-    "build": "pkg . --output dist/AI-Companion-Bridge.exe"
+    "build": "pkg . --output \"dist/Bedrock AI.exe\""
   },
   "keywords": [],
   "author": "",
@@ -33,7 +33,7 @@
     "outputPath": "dist",
     "assets": [
       "src/app.html",
-      "src/fonts/*.ttf"
+      "src/fonts/*.otf"
     ]
   }
 }
