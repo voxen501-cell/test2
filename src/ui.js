@@ -177,6 +177,22 @@ function createUi(cfg, onIdle, onRestart) {
     // Which services can be used, and where each one's key comes from. A key
     // only works with the service that issued it, so the app has to say which
     // is which rather than asking for "an API key".
+    // Opens a link in the player's browser. Restricted to https on purpose:
+    // this route can start a program, and it is reachable from the whole local
+    // network, so it must not be able to launch anything but a web page.
+    if (path === "/open") {
+      const want = new URL(req.url, "http://x").searchParams.get("url") || "";
+      let body;
+      if (/^https:\/\/[\w.-]+\//.test(want)) {
+        openWindow(want, true);
+        body = { ok: true };
+      } else {
+        body = { ok: false, message: "That link cannot be opened from here." };
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(body));
+    }
+
     if (path === "/providers") {
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
@@ -310,7 +326,17 @@ function createUi(cfg, onIdle, onRestart) {
 
 // Opens the page as its own window, so it reads as an app and not a browser
 // tab. Edge is always present on Windows; the plain browser is the fallback.
-function openWindow(url) {
+function openWindow(url, plain) {
+  // an app window for our own page, an ordinary browser tab for a link out
+  if (plain && process.platform === "win32") {
+    try {
+      const child = spawn("cmd", ["/c", "start", "", url],
+        { detached: true, stdio: "ignore", windowsHide: true });
+      child.on("error", () => {});
+      child.unref();
+    } catch (err) {}
+    return;
+  }
   const attempts = process.platform === "win32"
     ? [
         ["cmd", ["/c", "start", "", "msedge", "--app=" + url]],

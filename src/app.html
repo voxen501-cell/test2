@@ -338,6 +338,30 @@ code.inline{
   font:11.5px/1.7 ui-monospace,"Cascadia Mono",Consolas,monospace;
   color:var(--ink-2);white-space:pre-wrap;
 }
+/* the ask, kept to one line and one button */
+.kofi{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:18px;padding:14px 16px;border-radius:var(--r);
+  background:var(--deep);box-shadow:inset 0 2px 3px rgba(0,0,0,.4);
+}
+.kofi > div:first-child{flex:1;min-width:180px}
+.kofi__line{font-size:13px;font-weight:650}
+.kofi__sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.btn--kofi{
+  --side:#2c5fa8;color:#08131c;
+  background:#72a4f2;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.35),
+    0 var(--lip) 0 var(--side), 0 calc(var(--lip) + 2px) 6px rgba(0,0,0,.26);
+}
+.btn--kofi:hover{background:#8ab6f6}
+
+.credits{
+  margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:12.5px;
+}
+.credits dt{color:var(--ink);font-weight:650}
+.credits dd{margin:0;color:var(--ink-3)}
+
 .empty{grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink-3)}
 .empty svg{width:40px;height:40px;margin-bottom:12px;opacity:.4}
 .empty p{margin:0;font-size:13.5px}
@@ -640,7 +664,31 @@ code.inline{
             plus browser tools for building your own. Bedrock AI came out of wanting a companion
             in my own worlds that could actually see what was going on around me.</p>
           <p class="body">More of my work is at <b>nebuxmc.com</b>.</p>
-          <p class="sub" style="margin:14px 0 0">Not an official Minecraft product. Not approved
+
+          <div class="kofi">
+            <div>
+              <div class="kofi__line">This is free, and stays free.</div>
+              <div class="kofi__sub">If it earned a coffee, that keeps it going.</div>
+            </div>
+            <button class="btn btn--kofi" id="kofi">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M17 9h1.6a2.4 2.4 0 0 1 0 4.8H17"/><path d="M7 3v2M11 3v2"/></svg>
+              Support on Ko-fi
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Built with</h2>
+          <p class="sub">The pieces this is standing on.</p>
+          <dl class="credits">
+            <dt>Node.js</dt><dd>the bridge itself</dd>
+            <dt>ws</dt><dd>the websocket Minecraft connects to</dd>
+            <dt>nodejs-mobile</dt><dd>the same bridge, running on Android</dd>
+            <dt>Groq, Gemini, OpenRouter, Claude, Ollama</dt>
+            <dd>whichever one you point it at</dd>
+            <dt>Mojang</dt><dd>the game, and the websocket the whole thing rests on</dd>
+          </dl>
+          <p class="sub" style="margin:16px 0 0">Not an official Minecraft product. Not approved
             by or associated with Mojang or Microsoft.</p>
         </div>
 
@@ -1056,6 +1104,15 @@ function copyText(text) {
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, fallback);
   else fallback();
 }
+
+// The Ko-fi widget is a third-party script that loads late, ignores this
+// styling and shows nothing without a connection. A button to the same page
+// does the job and belongs to the app.
+document.getElementById("kofi").onclick = function () {
+  fetch("/open?url=" + encodeURIComponent("https://ko-fi.com/D1D21NM7NS"))
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (!d.ok) say(d.message, false); });
+};
 
 document.getElementById("copy").onclick = function () {
   var text = document.getElementById("cmd").textContent;

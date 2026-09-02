@@ -43,6 +43,11 @@
         <item name="android:textColor">@color/ink</item>
     </style>
 
+    <style name="SlabKofi" parent="Slab">
+        <item name="android:background">@drawable/btn_kofi</item>
+        <item name="android:textColor">@color/green_ink</item>
+    </style>
+
     <style name="SlabGrey" parent="Slab">
         <item name="android:background">@drawable/btn_grey</item>
         <item name="android:textColor">@color/ink</item>

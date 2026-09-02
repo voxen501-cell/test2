@@ -100,6 +100,15 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.install).setOnClickListener { installAddon() }
 
+        findViewById<Button>(R.id.kofi).setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://ko-fi.com/D1D21NM7NS")))
+            } catch (e: Exception) {
+                toast("No browser to open that with")
+            }
+        }
+
         findViewById<Button>(R.id.copy).setOnClickListener {
             val text = "/connect localhost:${NodeEngine.PORT}"
             (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)

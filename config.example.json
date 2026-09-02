@@ -2,6 +2,7 @@
   "provider": "groq",
   "apiKey": "",
   "model": "",
+  "fallbackModel": "",
   "maxTokens": 600,
   "port": 8080,
   "trigger": "ai",

@@ -193,11 +193,34 @@
                 android:visibility="gone" />
 
             <TextView
+                style="@style/StepHead"
+                android:text="Made by VoxenMC2" />
+
+            <TextView
+                style="@style/StepNote"
+                android:text="Free Minecraft Bedrock add-ons, shaders and texture packs, plus tools to build your own. More at nebuxmc.com" />
+
+            <TextView
+                style="@style/StepNote"
+                android:layout_marginTop="12dp"
+                android:text="This is free, and stays free. If it earned a coffee, that keeps it going." />
+
+            <Button
+                android:id="@+id/kofi"
+                style="@style/SlabKofi"
+                android:text="Support on Ko-fi" />
+
+            <TextView
+                style="@style/StepNote"
+                android:layout_marginTop="24dp"
+                android:text="Built with Node.js, ws and nodejs-mobile. The game, and the websocket this all rests on, are Mojang's." />
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="26dp"
+                android:layout_marginTop="18dp"
                 android:layout_marginBottom="24dp"
-                android:text="Leave this app running while you play. Not an official Minecraft product."
+                android:text="Leave this app running while you play. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft."
                 android:textColor="@color/ink4"
                 android:textSize="11sp" />
         </LinearLayout>
