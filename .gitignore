@@ -10,3 +10,6 @@ enc-config.json
 # built exe, not needed to deploy and too big for git
 dist/
 *.mcpack
+
+# branded pkg base, rebuilt by brand-exe.js
+.pkg-base/

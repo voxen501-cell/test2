@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node run-tests.js",
-    "build": "pkg . --output \"dist/Bedrock AI.exe\""
+    "build": "node brand-exe.js && node build-exe.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +20,8 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.22.0"
+    "@yao-pkg/pkg": "^6.22.0",
+    "resedit-cli": "^3.1.0"
   },
   "bin": "src/server.js",
   "pkg": {
